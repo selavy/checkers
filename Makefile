@@ -6,7 +6,7 @@ OBJS=main.o
 PROG=checkers
 
 $(PROG): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $?
+	$(CC) $(CFLAGS) -o $@ $^
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 .PHONY: clean
