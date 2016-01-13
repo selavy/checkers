@@ -9,8 +9,8 @@ typedef uint64_t board_t;
 typedef uint8_t move_t;
 
 struct state_t {
-    board_t white;
-    board_t black;
+    board_t white; /* displayed as 'x' */
+    board_t black; /* displayed as 'o' */
     move_t move;
 };
 
@@ -36,14 +36,14 @@ struct state_t {
 
 #define IS_BLACK_MOVE(move) ((move) & 1)
 #define IS_WHITE_MOVE(move) (!IS_BLACK_MOVE(move))
-#define IS_SET(board, square) ((board) & (1 << (square)))
-#define SET(board, square) (board |= (1 << (square)))
+#define IS_SET(board, square) ((board) & ((uint64_t)1 << (square)))
+#define SET(board, square) (board |= ((uint64_t)1 << (square)))
 #define DISPLAY(state, square)                    \
     IS_SET((state).white, (square)) ? 'x' :       \
     IS_SET((state).black, (square)) ? 'o' : ' '
 #define state_init(state)                       \
-    (state).white = 0;                          \
-    (state).black = 0;                          \
+    (state).white = 6172839697753047040UL;      \
+    (state).black = 11163050UL;                 \
     (state).move  = 0
 
 void print_board(struct state_t* state) {
@@ -52,7 +52,7 @@ void print_board(struct state_t* state) {
     for (i = 0; i < BOARDSZ; ++i) {
         if (i != 0 && i % 8 == 0) {
             printf("\n---------------------------------\n|");
-        }        
+        }
         printf(" %c |", DISPLAY(*state, i));
     }
     printf("\n---------------------------------\n");
