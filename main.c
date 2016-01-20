@@ -1,4 +1,8 @@
+#define _SVID_SOURCE
+//#define _POSIX_SOURCE
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
+#include <locale.h>
 #include <stdint.h>
 #include <regex.h>
 #include <stdlib.h>
@@ -24,7 +28,7 @@ struct move_t {
     char y2;
 };
 
-/* 
+/*
 ---------------------------------
 |   | X |   | X |   | X |   | X |
 ---------------------------------
@@ -48,6 +52,7 @@ struct move_t {
 #define IS_WHITE_MOVE(move) (!IS_BLACK_MOVE(move))
 #define IS_SET(board, square) ((board) & ((uint64_t)1 << (square)))
 #define SET(board, square) (board |= ((uint64_t)1 << (square)))
+#define CLEAR(board, square) (board &= ~((uint64_t)1 << (square)))
 #define DISPLAY(state, square)                    \
     IS_SET((state).white, (square)) ? 'x' :       \
     IS_SET((state).black, (square)) ? 'o' : ' '
@@ -68,12 +73,25 @@ void print_board(struct state_t* state) {
     printf("\n---------------------------------\n");
 }
 
-/* char toupper(char c) { */
-/*     if (c >= 'a' && c <= 'z') { */
-/*         c -= ('a' - 'A'); */
-/*     } */
-/*     return c; */
-/* } */
+int rpmatch(const char* line) {
+    regex_t preg;
+    regmatch_t match[1];
+    int ret;
+    char* error = 0;
+
+    if ((ret = regcomp(&preg, "^([yY]|yes|YES)", REG_EXTENDED)) < 0) {
+        regerror(ret, &preg, error, 0);
+        printf("Regex failed, error: %s\n", error);
+        free(error);
+        exit(0);
+    }
+
+    if (regexec(&preg, line, 1, &(match[0]), 0) != 0) {
+        return -1;
+    } else {
+        return 1;
+    }
+}
 
 int ask_for_move(struct state_t* state, struct move_t* move) {
     char* line = 0;
@@ -105,20 +123,59 @@ int ask_for_move(struct state_t* state, struct move_t* move) {
     }
 
     move->x1 = toupper(line[match[1].rm_so]) - 'A';
-    move->y1 = line[match[1].rm_eo - 1] - '0';
+    move->y1 = 8 - (line[match[1].rm_eo - 1] - '0');
     move->x2 = toupper(line[match[2].rm_so]) - 'A';
-    move->y2 = line[match[2].rm_eo - 1] - '0';
+    move->y2 = 8 - (line[match[2].rm_eo - 1] - '0');
     return 0;
+}
+
+void get_move(struct state_t* state, struct move_t* move) {
+    int i;
+    char* line = 0;
+    size_t n = 0;
+
+    for (i = 0; ask_for_move(state, move) != 0 && i < 3; ++i) {
+        printf("\nDo you want to quit? ");
+        if (getline(&line, &n, stdin) < 1) {
+            printf("getline failed!\n");
+            exit(0);
+        }
+        if (rpmatch(line) == 1) {
+            exit(0);
+        }
+    }
+    if (i >= 3) {
+        exit(0);
+    }
+}
+
+void make_move(struct state_t* state, struct move_t* move) {
+    printf("x1 = %d, y1 = %d, x2 = %d, y2 = %d\n", move->x1, move->y1, move->x2, move->y2);
+    if (IS_WHITE_MOVE(state->move)) {
+        printf("clearing %d\n", move->y1 * 8 + move->x1);
+        CLEAR(state->white, move->y1 * 8 + move->x1);
+        SET(state->white, move->y2 * 8 + move->x2);
+    }
+    else {
+        CLEAR(state->black, move->y1 * 8 + move->x1);
+        SET(state->black, move->y2 * 8 + move->x2);
+    }
 }
 
 int main(int argc, char **argv) {
     struct move_t move;
     struct state_t state;
+
     state_init(state);
     print_board(&state);
     printf("\nDone.\n");
 
-    ask_for_move(&state, &move);
+    /* ask_for_move(&state, &move); */
+    get_move(&state, &move);
     printf("Move: (%d, %d) -> (%d, %d)\n", move.x1, move.y1, move.x2, move.y2);
+
+    make_move(&state, &move);
+    print_board(&state);
+
     return 0;
 }
