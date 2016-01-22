@@ -39,6 +39,9 @@ typedef uint64_t square_t;
 struct state_t {
     board_t white; /* displayed as 'x' */
     board_t black; /* displayed as 'o' */
+    /* TODO: forgot about king position */
+    /* board_t white_kings; -- displayed as 'X' -- */
+    /* board_t black_kings; -- displayed as 'O' -- */
     move_t move;
 };
 
@@ -49,6 +52,7 @@ struct move_t {
     char y2;
 };
 
+// single moves, indexed by square with upper left being 0
 board_t MOVES[] = {
     0,
     1280,
