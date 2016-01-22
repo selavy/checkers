@@ -14,6 +14,7 @@
 typedef uint8_t boolean;
 typedef uint64_t board_t;
 typedef uint8_t move_t;
+typedef uint64_t square_t;
 
 struct state_t {
     board_t white; /* displayed as 'x' */
@@ -50,9 +51,9 @@ struct move_t {
 
 #define BLACK_MOVE(move) ((move) & 1)
 #define WHITE_MOVE(move) (!BLACK_MOVE(move))
-#define IS_SET(board, square) ((board) & ((uint64_t)1 << (square)))
-#define SET(board, square) (board |= ((uint64_t)1 << (square)))
-#define CLEAR(board, square) (board &= ~((uint64_t)1 << (square)))
+#define IS_SET(board, square) ((board) & ((square_t)1 << (square)))
+#define SET(board, square) (board |= ((square_t)1 << (square)))
+#define CLEAR(board, square) (board &= ~((square_t)1 << (square)))
 #define DISPLAY(state, square)                    \
     IS_SET((state).white, (square)) ? 'x' :       \
     IS_SET((state).black, (square)) ? 'o' : ' '
@@ -61,11 +62,12 @@ struct move_t {
     (state).black = 11163050UL;                 \
     (state).move  = 0
 #define VALID_MOVES 6172840429334713770UL
-#define VALID(square) ((square) & VALID_MOVES)
+#define VALID(square) (((square_t)(square) & VALID_MOVES))
 #define SQUARE(x, y) ((y)*8 + (x))
 #define FROM_SQUARE(move) (SQUARE((move).x1, (move).y1))
 #define TO_SQUARE(move) (SQUARE((move).x2, (move).y2))
-#define OCCUPIED(square, board) ((square) & ((board).white | (board).black))
+#define BOARD(board) ((board_t)((board).white | (board).black))
+#define OCCUPIED(square, board) ((((square_t)1 << square)) & BOARD(board))
 void print_board(struct state_t* state) {
     int i;
     printf("---------------------------------\n|");
@@ -98,10 +100,12 @@ int rpmatch(const char* line) {
     }
 }
 
-int is_valid_move(struct state_t* state, struct move_t* move) {
+int valid_move(struct state_t* state, struct move_t* move) {
     int ret;
-    int square = TO_SQUARE(*move);
+    square_t square = TO_SQUARE(*move);
     if (!VALID(square) || OCCUPIED(square, *state)) {
+        printf("BOARD: %lu\n", BOARD(*state));
+        printf("SQUARE: %lu\n", square);
         ret = 0;
     }
     else if (WHITE_MOVE(state->move)) {
@@ -110,7 +114,7 @@ int is_valid_move(struct state_t* state, struct move_t* move) {
     else {
         ret = 1;
     }
-    return ret ;
+    return ret;
 }
 
 int ask_for_move(struct state_t* state, struct move_t* move) {
@@ -147,7 +151,7 @@ int ask_for_move(struct state_t* state, struct move_t* move) {
     move->x2 = toupper(line[match[2].rm_so]) - 'A';
     move->y2 = 8 - (line[match[2].rm_eo - 1] - '0');
 
-    if (!is_valid_move(state, move)) {
+    if (!valid_move(state, move)) {
         printf("Invalid move!\n");
         return -1;
     }
