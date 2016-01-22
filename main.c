@@ -48,8 +48,8 @@ struct move_t {
 ---------------------------------
 */
 
-#define IS_BLACK_MOVE(move) ((move) & 1)
-#define IS_WHITE_MOVE(move) (!IS_BLACK_MOVE(move))
+#define BLACK_MOVE(move) ((move) & 1)
+#define WHITE_MOVE(move) (!BLACK_MOVE(move))
 #define IS_SET(board, square) ((board) & ((uint64_t)1 << (square)))
 #define SET(board, square) (board |= ((uint64_t)1 << (square)))
 #define CLEAR(board, square) (board &= ~((uint64_t)1 << (square)))
@@ -61,8 +61,11 @@ struct move_t {
     (state).black = 11163050UL;                 \
     (state).move  = 0
 #define VALID_MOVES 6172840429334713770UL
+#define VALID(square) ((square) & VALID_MOVES)
 #define SQUARE(x, y) ((y)*8 + (x))
-
+#define FROM_SQUARE(move) (SQUARE((move).x1, (move).y1))
+#define TO_SQUARE(move) (SQUARE((move).x2, (move).y2))
+#define OCCUPIED(square, board) ((square) & ((board).white | (board).black))
 void print_board(struct state_t* state) {
     int i;
     printf("---------------------------------\n|");
@@ -93,6 +96,21 @@ int rpmatch(const char* line) {
     } else {
         return 1;
     }
+}
+
+int is_valid_move(struct state_t* state, struct move_t* move) {
+    int ret;
+    int square = TO_SQUARE(*move);
+    if (!VALID(square) || OCCUPIED(square, *state)) {
+        ret = 0;
+    }
+    else if (WHITE_MOVE(state->move)) {
+        ret = 1;
+    }
+    else {
+        ret = 1;
+    }
+    return ret ;
 }
 
 int ask_for_move(struct state_t* state, struct move_t* move) {
@@ -128,10 +146,11 @@ int ask_for_move(struct state_t* state, struct move_t* move) {
     move->y1 = 8 - (line[match[1].rm_eo - 1] - '0');
     move->x2 = toupper(line[match[2].rm_so]) - 'A';
     move->y2 = 8 - (line[match[2].rm_eo - 1] - '0');
-    return 0;
-}
 
-int is_valid_move(struct state_t* state, struct move_t* move) {
+    if (!is_valid_move(state, move)) {
+        printf("Invalid move!\n");
+        return -1;
+    }
     
     return 0;
 }
@@ -157,7 +176,7 @@ void get_move(struct state_t* state, struct move_t* move) {
 }
 
 void make_move(struct state_t* state, struct move_t* move) {
-    if (IS_WHITE_MOVE(state->move)) {
+    if (WHITE_MOVE(state->move)) {
         CLEAR(state->white, SQUARE(move->x1, move->y1));
         SET(state->white, SQUARE(move->x2, move->y2));
     }
