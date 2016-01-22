@@ -88,9 +88,9 @@ RIGHT = [7, 23, 39, 55]
 TOP = [1, 3, 5, 7]
 BOTTOM = [56, 58, 60, 62]
 def move_from_square(square):
+    if ((1 << square) & 6172840429334713770) == 0:
+        return 0    
     moves = []
-    # if (square & 6172840429334713770) == 0:
-    #     return 0
     if square not in LEFT:
         if square + 7 < 64:
             moves.append(square + 7)
@@ -103,10 +103,11 @@ def move_from_square(square):
             moves.append(square - 9)
     ret = 0
     for move in moves:
-        print move
+        # print move
         ret = ret | (1 << move)
     return ret
     
 if __name__ == '__main__':
-    generate_from_board()
-    #print move_from_square(58)
+    #generate_from_board()
+    for i in range(64):
+        print '{},'.format(move_from_square(i))

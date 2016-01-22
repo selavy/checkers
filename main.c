@@ -16,19 +16,6 @@ typedef uint64_t board_t;
 typedef uint8_t move_t;
 typedef uint64_t square_t;
 
-struct state_t {
-    board_t white; /* displayed as 'x' */
-    board_t black; /* displayed as 'o' */
-    move_t move;
-};
-
-struct move_t {
-    char x1;
-    char y1;
-    char x2;
-    char y2;
-};
-
 /*
 ---------------------------------
 |   | X |   | X |   | X |   | X |
@@ -49,11 +36,93 @@ struct move_t {
 ---------------------------------
 */
 
+struct state_t {
+    board_t white; /* displayed as 'x' */
+    board_t black; /* displayed as 'o' */
+    move_t move;
+};
+
+struct move_t {
+    char x1;
+    char y1;
+    char x2;
+    char y2;
+};
+
+board_t MOVES[] = {
+    0,
+    1280,
+    0,
+    5120,
+    0,
+    20480,
+    0,
+    16384,
+    131072,
+    0,
+    655370,
+    0,
+    2621480,
+    0,
+    10485920,
+    0,
+    0,
+    83887360,
+    0,
+    335549440,
+    0,
+    1342197760,
+    0,
+    1073807360,
+    8589967360,
+    0,
+    42950328320,
+    0,
+    171801313280,
+    0,
+    687205253120,
+    0,
+    0,
+    5497642024960,
+    0,
+    21990568099840,
+    0,
+    87962272399360,
+    0,
+    70373039144960,
+    562952100904960,
+    0,
+    2814792716779520,
+    0,
+    11259170867118080,
+    0,
+    45036683468472320,
+    0,
+    0,
+    360293467747778560,
+    0,
+    1441173870991114240,
+    0,
+    5764695483964456960,
+    0,
+    4611967493404098560,
+    140737488355328,
+    0,
+    2814749767106560,
+    0,
+    11258999068426240,
+    0,
+    45035996273704960,
+    0
+};
+
+#define MASK(square) ((board_t)1 << (square))
+#define CAN_MOVE(to, from) (MOVES[(from)] & MASK(to))
 #define BLACK_MOVE(move) ((move) & 1)
 #define WHITE_MOVE(move) (!BLACK_MOVE(move))
-#define IS_SET(board, square) ((board) & ((square_t)1 << (square)))
-#define SET(board, square) (board |= ((square_t)1 << (square)))
-#define CLEAR(board, square) (board &= ~((square_t)1 << (square)))
+#define IS_SET(board, square) ((board) & MASK(square))
+#define SET(board, square) (board |= MASK(square))
+#define CLEAR(board, square) (board &= ~MASK(square))
 #define DISPLAY(state, square)                    \
     IS_SET((state).white, (square)) ? 'x' :       \
     IS_SET((state).black, (square)) ? 'o' : ' '
@@ -67,7 +136,8 @@ struct move_t {
 #define FROM_SQUARE(move) (SQUARE((move).x1, (move).y1))
 #define TO_SQUARE(move) (SQUARE((move).x2, (move).y2))
 #define BOARD(board) ((board_t)((board).white | (board).black))
-#define OCCUPIED(square, board) ((((square_t)1 << square)) & BOARD(board))
+#define OCCUPIED(square, board) (MASK(square) & BOARD(board))
+
 void print_board(struct state_t* state) {
     int i;
     printf("---------------------------------\n|");
@@ -104,14 +174,18 @@ int valid_move(struct state_t* state, struct move_t* move) {
     int ret;
     square_t square = TO_SQUARE(*move);
     if (!VALID(square) || OCCUPIED(square, *state)) {
-        printf("BOARD: %lu\n", BOARD(*state));
-        printf("SQUARE: %lu\n", square);
+        printf("failed not valid or occupied\n");
+        ret = 0;
+    }
+    else if (!CAN_MOVE(FROM_SQUARE(*move), square)) {
+        printf("failed can't move\n");
         ret = 0;
     }
     else if (WHITE_MOVE(state->move)) {
         ret = 1;
     }
     else {
+        
         ret = 1;
     }
     return ret;
