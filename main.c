@@ -60,6 +60,8 @@ struct move_t {
     (state).white = 6172839697753047040UL;      \
     (state).black = 11163050UL;                 \
     (state).move  = 0
+#define VALID_MOVES 6172840429334713770UL
+#define SQUARE(x, y) ((y)*8 + (x))
 
 void print_board(struct state_t* state) {
     int i;
@@ -129,6 +131,11 @@ int ask_for_move(struct state_t* state, struct move_t* move) {
     return 0;
 }
 
+int is_valid_move(struct state_t* state, struct move_t* move) {
+    
+    return 0;
+}
+
 void get_move(struct state_t* state, struct move_t* move) {
     int i;
     char* line = 0;
@@ -150,15 +157,13 @@ void get_move(struct state_t* state, struct move_t* move) {
 }
 
 void make_move(struct state_t* state, struct move_t* move) {
-    printf("x1 = %d, y1 = %d, x2 = %d, y2 = %d\n", move->x1, move->y1, move->x2, move->y2);
     if (IS_WHITE_MOVE(state->move)) {
-        printf("clearing %d\n", move->y1 * 8 + move->x1);
-        CLEAR(state->white, move->y1 * 8 + move->x1);
-        SET(state->white, move->y2 * 8 + move->x2);
+        CLEAR(state->white, SQUARE(move->x1, move->y1));
+        SET(state->white, SQUARE(move->x2, move->y2));
     }
     else {
-        CLEAR(state->black, move->y1 * 8 + move->x1);
-        SET(state->black, move->y2 * 8 + move->x2);
+        CLEAR(state->black, SQUARE(move->x1, move->y1));
+        SET(state->black, SQUARE(move->x2, move->y2));
     }
 }
 
@@ -170,7 +175,6 @@ int main(int argc, char **argv) {
     print_board(&state);
     printf("\nDone.\n");
 
-    /* ask_for_move(&state, &move); */
     get_move(&state, &move);
     printf("Move: (%d, %d) -> (%d, %d)\n", move.x1, move.y1, move.x2, move.y2);
 
