@@ -96,70 +96,32 @@ int rpmatch(const char* line) {
 
 int legal_move(struct state_t* state, struct move_t* move) {
     int ret;
+    square_t to = TO_SQUARE(*move);
+    square_t from = FROM_SQUARE(*move);
 
-    if (!VALID(TO_SQUARE(*move)) || OCCUPIED(TO_SQUARE(*move), *state)) {
+    if (!VALID(to) || OCCUPIED(to, *state)) {
         ret = 0;
     }
     else if (WHITE_MOVE(state->move)) {
-        printf("checking white move\n");
-        printf("to square = %d, from square = %d\n", TO_SQUARE(*move), FROM_SQUARE(*move));
-        printf("mask = %llu\n", WHITE_MOVES[FROM_SQUARE(*move)]);
-        if (WHITE_CAN_MOVE(TO_SQUARE(*move), FROM_SQUARE(*move))) {
+        /* TODO: check jumps, double jumps, kings */
+        if (WHITE_CAN_MOVE(to, from)) {
             ret = 1;
         }
         else {
-            printf("white can move failed\n");
             ret = 0;
         }
     }
-    else {
-        printf("checking black move\n");
-        if (BLACK_CAN_MOVE(TO_SQUARE(*move), FROM_SQUARE(*move))) {
+    else { /* black move */
+        /* TODO: check jumps, double jumps, kings */
+        if (BLACK_CAN_MOVE(to, from)) {
             ret = 1;
         }
         else {
-            printf("black can move failed\n");
             ret = 0;
         }
     }
 
     return ret;
-
-    /*
-    int ret;
-    square_t to = TO_SQUARE(*move);
-    square_t from;
-    int dist;
-
-    if (!VALID(to) || OCCUPIED(to, *state)) {
-        printf("failed not valid or occupied\n");
-        ret = 0;
-    }
-    else if (!CAN_MOVE(FROM_SQUARE(*move), to)) {
-        ret = 0;
-    }
-
-    from = FROM_SQUARE(*move);
-    dist = from - to;
-    if (WHITE_MOVE(state->move)) {
-    }
-    else {
-    }
-    */
-
-    /*
-    else if (!CAN_MOVE(FROM_SQUARE(*move), square)) {
-        printf("failed can't move\n");
-        ret = 0;
-    }
-    else if (WHITE_MOVE(state->move)) {
-        ret = 1;
-    }
-    else {
-        ret = 1;
-    }
-    */
-    /* return ret; */
 }
 
 int ask_for_move(struct state_t* state, struct move_t* move) {
