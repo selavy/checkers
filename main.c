@@ -19,8 +19,8 @@ struct state_t {
     board_t white; /* displayed as 'x' */
     board_t black; /* displayed as 'o' */
     /* TODO: forgot about king position */
-    /* board_t white_kings; -- displayed as 'X' -- */
-    /* board_t black_kings; -- displayed as 'O' -- */
+    board_t white_kings; /* -- displayed as 'X' -- */
+    board_t black_kings; /* -- displayed as 'O' -- */
     move_t move;
 };
 
@@ -36,7 +36,6 @@ board_t MOVES[] = { 0,1280,0,5120,0,20480,0,16384,131074,0,655370,0,2621480,0,10
 board_t WHITE_MOVES[] = { 0,0,0,0,0,0,0,0,2,0,10,0,40,0,160,0,0,1280,0,5120,0,20480,0,16384,131072,0,655360,0,2621440,0,10485760,0,0,83886080,0,335544320,0,1342177280,0,1073741824,8589934592,0,42949672960,0,171798691840,0,687194767360,0,0,5497558138880,0,21990232555520,0,87960930222080,0,70368744177664,562949953421312,0,2814749767106560,0,11258999068426240,0,45035996273704960,0 };
 
 board_t BLACK_MOVES[] = { 0,1280,0,5120,0,20480,0,16384,131072,0,655360,0,2621440,0,10485760,0,0,83886080,0,335544320,0,1342177280,0,1073741824,8589934592,0,42949672960,0,171798691840,0,687194767360,0,0,5497558138880,0,21990232555520,0,87960930222080,0,70368744177664,562949953421312,0,2814749767106560,0,11258999068426240,0,45035996273704960,0,0,360287970189639680,0,1441151880758558720,0,5764607523034234880,0,4611686018427387904,0,0,0,0,0,0,0,0 };
-// single moves, indexed by square with upper left being 0
 
 #define MASK(square) ((board_t)1 << (square))
 #define CAN_MOVE(to, from) (MOVES[(from)] & MASK(to))
@@ -47,9 +46,11 @@ board_t BLACK_MOVES[] = { 0,1280,0,5120,0,20480,0,16384,131072,0,655360,0,262144
 #define IS_SET(board, square) ((board) & MASK(square))
 #define SET(board, square) (board |= MASK(square))
 #define CLEAR(board, square) (board &= ~MASK(square))
-#define DISPLAY(state, square)                    \
-    IS_SET((state).white, (square)) ? 'x' :       \
-    IS_SET((state).black, (square)) ? 'o' : ' '
+#define DISPLAY(state, square) (IS_SET((state).white, (square)) ? 'x'       : \
+                               (IS_SET((state).white_kings, (square)) ? 'X' : \
+                               (IS_SET((state).black, (square)) ? 'o'       : \
+                               (IS_SET((state).black_kings, (square)) ? 'O' : \
+                               ' '))))
 #define state_init(state)                       \
     (state).white = 6172839697753047040UL;      \
     (state).black = 11163050UL;                 \
@@ -59,8 +60,12 @@ board_t BLACK_MOVES[] = { 0,1280,0,5120,0,20480,0,16384,131072,0,655360,0,262144
 #define SQUARE(x, y) ((y)*8 + (x))
 #define FROM_SQUARE(move) (SQUARE((move).x1, (move).y1))
 #define TO_SQUARE(move) (SQUARE((move).x2, (move).y2))
-#define BOARD(board) ((board_t)((board).white | (board).black))
-#define OCCUPIED(square, board) (MASK(square) & BOARD(board))
+#define FULLBOARD(board) ((board_t)((board).white | (board).black) | (board).white_kings | (board).black_kings)
+#define OCCUPIED(square, board) (MASK(square) & FULLBOARD(board))
+#define UP_LEFT(square) ((square) + 9)
+#define UP_RIGHT(square) ((square) + 7)
+#define DOWN_LEFT(square) ((square) - 7)
+#define DOWN_RIGHT(square) ((square) - 9)
 
 void print_board(struct state_t* state) {
     int i;
