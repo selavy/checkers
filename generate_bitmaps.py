@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 
 # BOARD = """
 # ---------------------------------
@@ -59,7 +60,7 @@ def generate_from_board():
             print "I = ", i
         elif cell == 'O':
             black = black | (1 << i)
-            print "I = ", i            
+            print "I = ", i
 
     print white
     print black
@@ -89,25 +90,45 @@ TOP = [1, 3, 5, 7]
 BOTTOM = [56, 58, 60, 62]
 def move_from_square(square):
     if ((1 << square) & 6172840429334713770) == 0:
-        return 0    
+        return '0', '0', '0'
     moves = []
     if square not in LEFT:
         if square + 7 < 64:
             moves.append(square + 7)
-        if square - 7 > 0:
-            moves.append(square - 7)
+        if square - 9 > 0:
+            moves.append(square - 9)
     if square not in RIGHT:
         if square + 9 < 64:
             moves.append(square + 9)
-        if square - 9 > 0:
-            moves.append(square - 9)
+        if square - 7 > 0:
+            moves.append(square - 7)
     ret = 0
+    white = 0
+    black = 0
     for move in moves:
-        # print move
         ret = ret | (1 << move)
-    return ret
-    
+        if move > square:
+            black = black | (1 << move)
+        elif move < square:
+            white = white | (1 << move)
+    return str(ret), str(white), str(black)
+
 if __name__ == '__main__':
     #generate_from_board()
+
+    #print move_from_square(40)
+    #sys.exit(0)
+
+    full = []
+    white = []
+    black = []
     for i in range(64):
-        print '{},'.format(move_from_square(i))
+        ret = move_from_square(i)
+        full.append(ret[0])
+        white.append(ret[1])
+        black.append(ret[2])
+        #print ','.join(move_from_square(i))
+    print ','.join(full), '\n'
+    print ','.join(white), '\n'
+    print ','.join(black), '\n'
+
