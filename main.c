@@ -18,7 +18,6 @@ typedef uint64_t square_t;
 struct state_t {
     board_t white; /* displayed as 'x' */
     board_t black; /* displayed as 'o' */
-    /* TODO: forgot about king position */
     board_t white_kings; /* -- displayed as 'X' -- */
     board_t black_kings; /* -- displayed as 'O' -- */
     move_t move;
@@ -53,14 +52,18 @@ board_t BLACK_MOVES[] = { 0,1280,0,5120,0,20480,0,16384,131072,0,655360,0,262144
                                ' '))))
 #define state_init(state)                       \
     (state).white = 6172839697753047040UL;      \
+    (state).white_kings = 0UL;                  \
     (state).black = 11163050UL;                 \
+    (state).black_kings = 0UL;                  \
     (state).move  = 0
 #define VALID_MOVES 6172840429334713770UL
 #define VALID(square) (((square_t)(square) & VALID_MOVES))
 #define SQUARE(x, y) ((y)*8 + (x))
 #define FROM_SQUARE(move) (SQUARE((move).x1, (move).y1))
 #define TO_SQUARE(move) (SQUARE((move).x2, (move).y2))
-#define FULLBOARD(board) ((board_t)((board).white | (board).black) | (board).white_kings | (board).black_kings)
+#define WHITE(board) ((board_t)((board).white | (board).white_kings))
+#define BLACK(board) ((board_t)((board).black | (board).black_kings))
+#define FULLBOARD(board) (WHITE(board) | BLACK(board))
 #define OCCUPIED(square, board) (MASK(square) & FULLBOARD(board))
 #define UP_LEFT(square) ((square) + 9)
 #define UP_RIGHT(square) ((square) + 7)
@@ -92,11 +95,7 @@ int rpmatch(const char* line) {
         exit(0);
     }
 
-    if (regexec(&preg, line, 1, &(match[0]), 0) != 0) {
-        return -1;
-    } else {
-        return 1;
-    }
+    return regexec(&preg, line, 1, &(match[0]), 0);
 }
 
 int legal_move(struct state_t* state, struct move_t* move) {
@@ -108,20 +107,25 @@ int legal_move(struct state_t* state, struct move_t* move) {
         ret = 0;
     }
     else if (WHITE_MOVE(state->move)) {
+        printf("Checking white move\n");
         /* TODO: check jumps, double jumps, kings */
         if (WHITE_CAN_MOVE(to, from)) {
             ret = 1;
-        }
-        else {
+        } else if (to == UP_LEFT(UP_LEFT(from)) && IS_SET(BLACK(*state), UP_LEFT(from))) {
+            ret = 1;
+        } else if (to == UP_RIGHT(UP_RIGHT(from)) && IS_SET(BLACK(*state), UP_RIGHT(from))) {
+            ret = 1;
+        } else {
+            /* check king moves */
             ret = 0;
         }
     }
     else { /* black move */
+        printf("Checking black move\n");
         /* TODO: check jumps, double jumps, kings */
         if (BLACK_CAN_MOVE(to, from)) {
             ret = 1;
-        }
-        else {
+        } else {
             ret = 0;
         }
     }
@@ -182,7 +186,7 @@ void get_move(struct state_t* state, struct move_t* move) {
             printf("getline failed!\n");
             exit(0);
         }
-        if (rpmatch(line) == 1) {
+        if (rpmatch(line) == 0) {
             exit(0);
         }
     }
@@ -195,26 +199,26 @@ void make_move(struct state_t* state, struct move_t* move) {
     if (WHITE_MOVE(state->move)) {
         CLEAR(state->white, SQUARE(move->x1, move->y1));
         SET(state->white, SQUARE(move->x2, move->y2));
-    }
-    else {
+    } else {
         CLEAR(state->black, SQUARE(move->x1, move->y1));
         SET(state->black, SQUARE(move->x2, move->y2));
     }
+    state->move += 1;
 }
 
 int main(int argc, char **argv) {
     struct move_t move;
     struct state_t state;
+    int i;
 
     state_init(state);
     print_board(&state);
-    printf("\nDone.\n");
 
-    get_move(&state, &move);
-    printf("Move: (%d, %d) -> (%d, %d)\n", move.x1, move.y1, move.x2, move.y2);
-
-    make_move(&state, &move);
-    print_board(&state);
+    for (i = 0; i < 10; ++i) {
+        get_move(&state, &move);
+        make_move(&state, &move);
+        print_board(&state);
+    }
 
     return 0;
 }
