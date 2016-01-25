@@ -240,6 +240,7 @@ int main(int argc, char **argv) {
     state_init(state);
     print_board(&state);
 
+    /* TODO: how to handle multi-capture moves? */
     for (i = 0; i < 10; ++i) {
         printf("Move #%d\n", state.move);
         if (WHITE_MOVE(state)) {
