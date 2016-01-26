@@ -31,6 +31,26 @@ struct move_t {
     uint8_t capture; // 255 if no capture, otherwise location of piece captured
 };
 
+struct __node_t {
+    struct move_t* move;
+    struct __node_t* next;
+};
+
+struct moves_t {
+    struct __node_t* head;
+    struct __node_t* tail;
+};
+
+void moves_init(struct moves_t* moves) {
+    
+}
+
+void moves_finalize(struct move_t* moves) {
+}
+
+void moves_push(struct move_t* moves, struct move_t* move) {
+}
+
 board_t MOVES[] = { 0,1280,0,5120,0,20480,0,16384,131074,0,655370,0,2621480,0,10485920,0,0,83887360,0,335549440,0,1342197760,0,1073758208,8590065664,0,42950328320,0,171801313280,0,687205253120,0,0,5497642024960,0,21990568099840,0,87962272399360,0,70369817919488,562958543355904,0,2814792716779520,0,11259170867118080,0,45036683468472320,0,0,360293467747778560,0,1441173870991114240,0,5764695483964456960,0,4611756387171565568,562949953421312,0,2814749767106560,0,11258999068426240,0,45035996273704960,0 };
 
 board_t WHITE_MOVES[] = { 0,0,0,0,0,0,0,0,2,0,10,0,40,0,160,0,0,1280,0,5120,0,20480,0,16384,131072,0,655360,0,2621440,0,10485760,0,0,83886080,0,335544320,0,1342177280,0,1073741824,8589934592,0,42949672960,0,171798691840,0,687194767360,0,0,5497558138880,0,21990232555520,0,87960930222080,0,70368744177664,562949953421312,0,2814749767106560,0,11258999068426240,0,45035996273704960,0 };
@@ -106,6 +126,37 @@ int rpmatch(const char* line) {
     return regexec(&preg, line, 1, &(match[0]), 0);
 }
 
+int generate_captures(struct state_t* state, int* moves, int* num) {
+    /* TODO: improve */
+    int i;
+    *num = 0;
+    moves = malloc(sizeof(*moves) * 12);
+
+    if (WHITE_MOVE(*state)) {
+        for (i = 0; i < 64; ++i) {
+            if (IS_SET(WHITE(*state), i)) {
+                if (IS_SET(BLACK(*state), UP_LEFT(i)) && !IS_SET(FULLBOARD(*state), UP_LEFT(UP_LEFT(i)))) {
+                    moves[*num++] = UP_LEFT(UP_LEFT(i));
+                }
+                if (IS_SET(BLACK(*state), UP_RIGHT(i)) && !IS_SET(FULLBOARD(*state), UP_RIGHT(UP_RIGHT(i)))) {
+                    moves[*num++] = UP_RIGHT(UP_RIGHT(i));
+                }
+
+                if (IS_SET(state->white_kings, i)) { /* check jumps backwards */
+                    if (IS_SET(BLACK(*state), DOWN_LEFT(i)) && !IS_SET(FULLBOARD(*state), DOWN_LEFT(DOWN_LEFT(i)))) {
+                        moves[*num++] = DOWN_LEFT(DOWN_LEFT(i));
+                    }
+                    if (IS_SET(BLACK(*state), DOWN_RIGHT(i)) && !IS_SET(FULLBOARD(*state), DOWN_RIGHT(DOWN_RIGHT(i)))) {
+                        moves[*num++] = DOWN_RIGHT(DOWN_RIGHT(i));
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
 int legal_move(struct state_t* state, struct move_t* move) {
     int ret;
     square_t to = TO_SQUARE(*move);
@@ -117,9 +168,6 @@ int legal_move(struct state_t* state, struct move_t* move) {
     else if (WHITE_MOVE(*state)) {
         printf("Checking white move\n");
         /* TODO: check jumps, double jumps, kings */
-        printf("to = %lu, from = %lu, mask = %lu\n", to, from, WHITE_MOVES[from]);
-        printf("up_left(up_left(from)) = %lu\n", UP_LEFT(UP_LEFT(from)));
-        printf("up_right(up_right(from)) = %lu\n", UP_RIGHT(UP_RIGHT(from)));
         if (WHITE_CAN_MOVE(to, from)) {
             ret = 1;
         } else if (to == UP_LEFT(UP_LEFT(from)) && IS_SET(BLACK(*state), UP_LEFT(from))) {
@@ -134,9 +182,7 @@ int legal_move(struct state_t* state, struct move_t* move) {
         }
     }
     else { /* black move */
-        printf("Checking black move\n");
         /* TODO: check jumps, double jumps, kings */
-        printf("to = %lu, from = %lu, mask = %lu\n", to, from, BLACK_MOVES[from]);
         if (BLACK_CAN_MOVE(to, from)) {
             ret = 1;
         } else if (to == DOWN_LEFT(DOWN_LEFT(from)) && IS_SET(WHITE(*state), DOWN_LEFT(from))) {
