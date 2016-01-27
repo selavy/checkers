@@ -23,21 +23,21 @@ import sys
 
 BOARD = """
 ---------------------------------
-|   | X |   | X |   | X |   | X |
+|   | w |   | w |   | w |   | w |
 ---------------------------------
-| X |   | X |   | X |   | X |   |
+| w |   | w |   | w |   | w |   |
 ---------------------------------
-|   | X |   | X |   | X |   | X |
+|   | w |   | w |   | w |   | w |
 ---------------------------------
-| X |   | X |   | X |   | X |   |
+|   |   |   |   |   |   |   |   |
 ---------------------------------
-|   | X |   | X |   | X |   | X |
+|   |   |   |   |   |   |   |   |
 ---------------------------------
-| X |   | X |   | X |   | X |   |
+| b |   | b |   | b |   | b |   |
 ---------------------------------
-|   | X |   | X |   | X |   | X |
+|   | b |   | b |   | b |   | b |
 ---------------------------------
-| X |   | X |   | X |   | X |   |
+| b |   | b |   | b |   | b |   |
 ---------------------------------
 """
 
@@ -46,21 +46,33 @@ def generate_from_board():
 
     board = []
     for i, line in enumerate(lines):
-        if i % 2 == 0:
+        if i % 2 == 0: # skip "----" lines
             continue
         cells = line.replace(' ', '').split('|')[1:-1]
-        print cells
-        board.extend(cells)
+        if i not in [1,5,9,13]:
+            cells.pop(7)
+            cells.pop(5)
+            cells.pop(3)            
+            cells.pop(1)
+        else:
+            cells.pop(6)
+            cells.pop(4)            
+            cells.pop(2)
+            cells.pop(0)
+        #board.extend(cells)
+        cells[len(cells):] = board
+        board = cells
 
-    white = 0
-    black = 0
+    white = 0 # w|W = white
+    black = 0 # b|B = black
+    
     for i, cell in enumerate(board):
-        if cell == 'X':
+        if cell == 'w':
             white = white | (1 << i)
-            print "I = ", i
-        elif cell == 'O':
+            print "W = ", i
+        elif cell == 'b':
             black = black | (1 << i)
-            print "I = ", i
+            print "B = ", i
 
     print white
     print black
@@ -114,21 +126,21 @@ def move_from_square(square):
     return str(ret), str(white), str(black)
 
 if __name__ == '__main__':
-    #generate_from_board()
+    generate_from_board()
 
     #print move_from_square(40)
     #sys.exit(0)
 
-    full = []
-    white = []
-    black = []
-    for i in range(64):
-        ret = move_from_square(i)
-        full.append(ret[0])
-        white.append(ret[1])
-        black.append(ret[2])
-        #print ','.join(move_from_square(i))
-    print ','.join(full), '\n'
-    print ','.join(white), '\n'
-    print ','.join(black), '\n'
+    # full = []
+    # white = []
+    # black = []
+    # for i in range(64):
+    #     ret = move_from_square(i)
+    #     full.append(ret[0])
+    #     white.append(ret[1])
+    #     black.append(ret[2])
+    #     #print ','.join(move_from_square(i))
+    # print ','.join(full), '\n'
+    # print ','.join(white), '\n'
+    # print ','.join(black), '\n'
 
