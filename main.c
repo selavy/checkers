@@ -30,6 +30,7 @@ struct state_t {
 /* but this complicates the move generation for no significant gain.        */
 struct move_t {
     uint8_t moves[MAX_MOVES_PER_TURN]; /* non-move are 0, indexed from 1 */
+    uint8_t capture;
 };
 
 #define MASK(square) ((square_t)1 << (square))
@@ -38,6 +39,8 @@ struct move_t {
 #define OCCUPY(pieces, square) (pieces & MASK(square))
 #define MOVE(pieces, from, to) do { PLACE(pieces, to); CLEAR(pieces, from); } while(0)
 #define ROW(square) (((square) / 4) - 1)
+#define WHITE(state) ((state).white | (state).white_kings)
+#define BLACK(state) ((state).black | (state).black_kings)
 
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
@@ -130,6 +133,88 @@ void __setup_start_position(struct state_t* state) {
     state->moves = 0;
 }
 
+struct __move_list_node_t {
+    struct move_t* move;
+    struct __move_list_node_t* next;
+};
+
+struct move_list_t {
+    struct __move_list_node_t* head;
+    struct __move_list_node_t* tail;
+};
+
+int move_list_init(struct move_list_t* list) {
+    list->head = 0;
+    list->tail = 0;
+    return 0;
+}
+
+/* move must be heap allocated, list assume ownership of memory */
+int move_list_append(struct move_list_t* list, struct move_t* move) {
+    struct __move_list_node_t* node = malloc(sizeof(*node));
+    if (!node) return -1;
+    node->move = move;
+    node->next = 0;
+    if (list->head == 0) {
+        list->head = node;
+    } else {
+        list->tail->next = node;
+    }
+    list->tail = node;
+    return 0;
+}
+
+void __move_print(FILE* file, struct move_t* move) {
+    int i;
+    if (move->capture == 0) {
+        fprintf(file, "%d-%d", (int)move->moves[0], (int)move->moves[1]);
+    }
+    else {
+        fprintf(file, "%dx%d", (int)move->moves[0], (int)move->moves[1]);
+    }
+    for (i = 2; i < MAX_MOVES_PER_TURN && move->moves[i]; ++i) {
+        fprintf(file, "x%d", (int)move->moves[i]);
+    }
+}
+#define move_print(move) __move_print(stdout, move)
+/* moves should be 1-indexed */
+#define move_append(move, square) do {          \
+        int i = 0;                              \
+        for (; i < MAX_MOVES_PER_TURN; ++i) {   \
+            if ((move).moves[i] == 0) {         \
+                (move).moves[i] = square;       \
+                if (i > 1) {                    \
+                    (move).capture = 1;         \
+                }                               \
+                break;                          \
+            }                                   \
+        }                                       \
+    } while(0)
+#define move_set(move, num, square) do {        \
+        if (num > 1) {                          \
+            (move).capture = 1;                 \
+        }                                       \
+        (move).moves[num] = (square);           \
+    } while(0)
+#define move_make(move, from, to) do {          \
+        (move).moves[0] = from;                 \
+        (move).moves[1] = to;                   \
+    } while(0)
+#define move_capture(move, from, to) do {       \
+        (move).capture = 1;                     \
+        (move).moves[0] = from;                 \
+        (move).moves[1] = to;                   \
+    } while(0)
+
+/* int find_captures(struct state_t* state, struct move_t* moves) { */
+/*     if (black_move(*state)) { */
+/*         const int32_t opponent = WHITE(*state); */
+/*     } else { */
+/*         /\* const int32_t opponent = BLACK(*state); *\/ */
+/*     } */
+/*     return 0; */
+/* } */
+
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_t move;
@@ -138,5 +223,14 @@ int main(int argc, char **argv) {
     __setup_start_position(&state);
     print_board(&state);
 
+    move_capture(move, 1, 5);
+    move_append(move, 10);
+    move_print(&move); printf("\n");
+
+    move_init(&move);
+    move_make(move, 1, 5);
+    move_print(&move); printf("\n");
+
+    printf("\n\nBye.\n");
     return 0;
 }
