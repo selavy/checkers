@@ -212,6 +212,7 @@ void __setup_start_position(struct state_t* state) {
      (state).black_kings = 0;                   \
      (state).moves = 0;
 
+/* TODO: generate bitmaps to test for sides of board squares */
 int generate_captures(struct state_t* state, struct move_list_t* moves) {
     square_t square;
     struct move_t move;
