@@ -219,12 +219,12 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
-                if (UP_LEFT(square) < SQUARES && JUMP_UP_LEFT(square) < SQUARES && OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
+                if (OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                     move.src = square+1;
                     move.dst = JUMP_UP_LEFT(square);
                     move_list_append_capture(*moves, move);
                 }
-                if (UP_RIGHT(square) < SQUARES && JUMP_UP_RIGHT(square) < SQUARES && OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
+                if (OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                     move.src = square+1;
                     move.dst = JUMP_UP_RIGHT(square);
                     move_list_append_capture(*moves, move);                    
@@ -232,12 +232,12 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
 
                 if (OCCUPIED(state->black_kings, square)) {
                     /* check king moves */
-                    if (DOWN_LEFT(square) >= 0 && JUMP_DOWN_LEFT(square) >= 0 && OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                    if (OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                         move.src = square + 1;
                         move.dst = JUMP_DOWN_LEFT(square);
                         move_list_append_capture(*moves, move);                        
                     }
-                    if (DOWN_RIGHT(square) >= 0 && JUMP_DOWN_RIGHT(square) >= 0 && OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
+                    if (OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                         move.src = square + 1;
                         move.dst = JUMP_DOWN_RIGHT(square);
                         move_list_append_capture(*moves, move);                        
@@ -248,12 +248,12 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     } else {
         for (square = 0; square < 32; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
-                if (DOWN_LEFT(square) >= 0 && JUMP_DOWN_LEFT(square) >= 0 && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                if (OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                     move.src = square+1;
                     move.dst = JUMP_DOWN_LEFT(square);
                     move_list_append_capture(*moves, move);                    
                 }
-                if (DOWN_RIGHT(square) >= 0 && JUMP_DOWN_RIGHT(square) >= 0 && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
+                if (OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                     move.src = square+1;
                     move.dst = JUMP_DOWN_RIGHT(square);
                     move_list_append_capture(*moves, move);                    
@@ -261,12 +261,12 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
 
                 if (OCCUPIED(state->white_kings, square)) {
                     /* check king moves */
-                    if (UP_LEFT(square) < SQUARES && JUMP_UP_LEFT(square) < SQUARES && OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
+                    if (OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                         move.src = square + 1;
                         move.dst = JUMP_UP_LEFT(square);
                         move_list_append_capture(*moves, move);
                     }
-                    if (UP_RIGHT(square) < SQUARES && JUMP_UP_RIGHT(square) < SQUARES && OCCUPIED(BLACK(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
+                    if (OCCUPIED(BLACK(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                         move.src = square + 1;
                         move.dst = JUMP_UP_RIGHT(square);
                         move_list_append_capture(*moves, move);
