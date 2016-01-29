@@ -29,18 +29,22 @@ struct state_t {
 /* could represent moves with 6 bits / per x 10 moves = 60 bits => uint64_t */
 /* but this complicates the move generation for no significant gain.        */
 struct move_t {
-    uint8_t moves[MAX_MOVES_PER_TURN]; /* non-move are 0, indexed from 1 */
+    uint8_t src;
+    uint8_t dst[MAX_MOVES_PER_TURN - 1]; /* non-move are 0, indexed from 1 */
     uint8_t capture;
 };
 
 #define MASK(square) ((square_t)1 << (square))
 #define PLACE(pieces, square) do { ((pieces) |= MASK(square)); } while(0)
 #define CLEAR(pieces, square) do { ((pieces) &= ~MASK(square)); } while(0)
-#define OCCUPY(pieces, square) (pieces & MASK(square))
+#define OCCUPIED(pieces, square) (pieces & MASK(square))
 #define MOVE(pieces, from, to) do { PLACE(pieces, to); CLEAR(pieces, from); } while(0)
 #define ROW(square) (((square) / 4) - 1)
 #define WHITE(state) ((state).white | (state).white_kings)
 #define BLACK(state) ((state).black | (state).black_kings)
+#define KINGS(state) ((state).black_kings | (state).white_kings)
+#define PAWNS(state) ((state).white | (state).black)
+#define FULLBOARD(state) (WHITE(state) | BLACK(state))
 
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
@@ -50,7 +54,7 @@ void __state_init(struct state_t* state) {
 int __black_move(struct state_t* state) {
     return (state->moves & 1) == 0; /* even moves => black to move */
 }
-#define black_move(state) ((state).moves & 1 == 0)
+#define black_move(state) (((state).moves & 1) == 0)
 
 int __white_move(struct state_t* state) {
     return state->moves & 1;
@@ -80,7 +84,7 @@ void __print_board(FILE* file, struct state_t* state) {
 */    
     int8_t r;
     int8_t c;
-    int8_t skip = 1;
+    boolean skip = TRUE;
     int square = 28; /* upper left square, 0-indexed */
     for (r = ROWS - 1; r >= 0; --r) {
         printf("\n    ---------------------------------\n    |");
@@ -89,22 +93,26 @@ void __print_board(FILE* file, struct state_t* state) {
                 fprintf(file, "   |");
             } else {
                 /* fprintf(file, " %d |", square); */
-                if (OCCUPY(state->black, square)) {
+                if (OCCUPIED(state->black, square)) {
                     fprintf(file, " b |");
-                } else if (OCCUPY(state->black_kings, square)) {
+                } else if (OCCUPIED(state->black_kings, square)) {
                     fprintf(file, " B |");
-                } else if (OCCUPY(state->white, square)) {
+                } else if (OCCUPIED(state->white, square)) {
                     fprintf(file, " w |");
-                } else if (OCCUPY(state->white_kings, square)) {
+                } else if (OCCUPIED(state->white_kings, square)) {
                     fprintf(file, " W |");
                 } else {
-                    fprintf(file, "   |");
+                    if (square > 8) { // will use 2 characters
+                        fprintf(file, "%d |", square + 1);
+                    } else {
+                        fprintf(file, " %d |", square + 1);
+                    }
                 }
                 ++square;
             }
-            skip ^= 1;
+            skip ^= TRUE;
         }
-        skip ^= 1;
+        skip ^= TRUE;
         square -= 8;
     }
     printf("\n    ---------------------------------\n");       
@@ -167,16 +175,18 @@ int move_list_append(struct move_list_t* list, struct move_t* move) {
 void __move_print(FILE* file, struct move_t* move) {
     int i;
     if (move->capture == 0) {
-        fprintf(file, "%d-%d", (int)move->moves[0], (int)move->moves[1]);
+        fprintf(file, "%d-%d", (int)move->src, (int)move->dst[1]);
     }
     else {
-        fprintf(file, "%dx%d", (int)move->moves[0], (int)move->moves[1]);
+        fprintf(file, "%dx%d", (int)move->src, (int)move->dst[1]);
     }
-    for (i = 2; i < MAX_MOVES_PER_TURN && move->moves[i]; ++i) {
-        fprintf(file, "x%d", (int)move->moves[i]);
+    for (i = 2; i < MAX_MOVES_PER_TURN && move->dst[i]; ++i) {
+        fprintf(file, "x%d", (int)move->dst[i]);
     }
 }
 #define move_print(move) __move_print(stdout, move)
+
+/* FIX ME: broke these when changed move definition */
 /* moves should be 1-indexed */
 #define move_append(move, square) do {          \
         int i = 0;                              \
@@ -206,30 +216,101 @@ void __move_print(FILE* file, struct move_t* move) {
         (move).moves[1] = to;                   \
     } while(0)
 
-/* int find_captures(struct state_t* state, struct move_t* moves) { */
+/* int find_captures(struct state_t* state) { */
+/*     square_t square; */
+/*     struct move_t move; */
 /*     if (black_move(*state)) { */
-/*         const int32_t opponent = WHITE(*state); */
-/*     } else { */
-/*         /\* const int32_t opponent = BLACK(*state); *\/ */
+/*         for (square = 0; square < 32; ++square) { */
+/*             if (OCCUPIED(BLACK(*state), square)) { */
+/*                 if (OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(BLACK(*state), JUMP_UP_LEFT(square))) { */
+/*                     move_init(&move); */
+/*                 } */
+
+                
+/*             } */
+/*         } */
+/*     } */
+/*     else { */
 /*     } */
 /*     return 0; */
 /* } */
 
+int generate_moves(struct state_t* state) {
+    square_t square;
+    if (black_move(*state)) {
+        for (square = 0; square < 32; ++square) {
+            if (OCCUPIED(BLACK(*state), square)) {
+                if (!OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
+                    printf("%d - %d\n", square+1, UP_LEFT(square)+1);
+                }
+                if (!OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
+                    printf("%d - %d\n", square+1, UP_RIGHT(square)+1);
+                }
+
+                if (OCCUPIED(state->black_kings, square)) {
+                    /* check kings move */
+                    if (!OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
+                        printf("%d - %d\n", square+1, DOWN_LEFT(square)+1);
+                    }
+                    if (!OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
+                        printf("%d - %d\n", square+1, DOWN_RIGHT(square)+1);
+                    }
+                }
+            }
+        }
+    } else {
+        for (square = 0; square < 32; ++square) {
+            if (OCCUPIED(WHITE(*state), square)) {
+                if (!OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
+                    printf("%d - %d\n", square+1, DOWN_LEFT(square)+1);
+                }
+                if (!OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
+                    printf("%d - %d\n", square+1, DOWN_RIGHT(square)+1);
+                }
+                
+                if (OCCUPIED(state->white_kings, square)) {
+                    /* check kings move */
+                    if (!OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
+                        printf("%d - %d\n", square+1, UP_LEFT(square)+1);
+                    }
+                    if (!OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
+                        printf("%d - %d\n", square+1, UP_RIGHT(square)+1);
+                    }
+                }
+            }
+        }        
+    }
+    
+
+    return 0;
+}
+
 int main(int argc, char **argv) {
     struct state_t state;
-    struct move_t move;
-    move_init(&move);
-    state_init(&state);
-    __setup_start_position(&state);
+    /* struct move_t move; */
+    /* move_init(&move); */
+    /* state_init(&state); */
+    /* __setup_start_position(&state); */
+    /* print_board(&state); */
+    /* state.black <<= 4; */
+    /* print_board(&state); */
+
+    state.black = MASK(14);
+    state.black_kings = 0;    
+    state.white = 0;
+    state.white_kings = 0;
+    state.moves = 0;
+
     print_board(&state);
+    generate_moves(&state);
 
-    move_capture(move, 1, 5);
-    move_append(move, 10);
-    move_print(&move); printf("\n");
+    /* move_capture(move, 1, 5); */
+    /* move_append(move, 10); */
+    /* move_print(&move); printf("\n"); */
 
-    move_init(&move);
-    move_make(move, 1, 5);
-    move_print(&move); printf("\n");
+    /* move_init(&move); */
+    /* move_make(move, 1, 5); */
+    /* move_print(&move); printf("\n"); */
 
     printf("\n\nBye.\n");
     return 0;
