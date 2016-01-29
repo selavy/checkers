@@ -8,6 +8,8 @@
 /* #include <regex.h> */
 /* #include <ctype.h> */
 
+#define MAX_PATH 8
+#define MAX_MOVES 32
 #define COLUMNS 8
 #define ROWS 8
 #define SQUARES ((ROWS) * (COLUMNS))
@@ -25,21 +27,82 @@ struct state_t {
     uint8_t moves;
 };
 
-/* could represent moves with 6 bits / per x 10 moves = 60 bits => uint64_t */
-/* but this complicates the move generation for no significant gain.        */
+/* moves are 1-indexed so 0 can indicate that the path is empty */
 struct move_t {
     uint8_t src; /* square started on */
     uint8_t dst; /* square ended on */
-    uint8_t path[8]; /* path traveled if this was a multi-jump */
+    uint8_t path[MAX_PATH]; /* path traveled if this was a multi-jump */
 };
 
 struct move_list_t {
-    struct move_t moves[32];
+    struct move_t moves[MAX_MOVES];
     int njumps; /* number of jumps */    
     int nmoves; /* number of regular moves */
 };
+#define move_list_num_moves(list) ((list).njumps + (list).nmoves)
 
+/* TODO: add is_capture parameter */
+void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
+    int i;
+    /* if (is_capture) { */
+    fprintf(file, "%d-", move->src);
+    for (i = 0; i < MAX_PATH && move->path[i]; ++i) {
+        fprintf(file, "%d-", move->path[i]);
+    }
+    fprintf(file, "%d", move->dst);
+    /* } else { */
+    /*     fprintf(file, "%d-%d", move->src, move->dst); */
+    /* } */
+}
+#define print_move(move, is_capture) __print_move(stdout, &(move))
+
+int __move_list_init(struct move_list_t* list) {
+    list->njumps = 0;
+    list->nmoves = 0;
+    memset(&(list->moves[0]), 0, sizeof(list->moves[0]) * MAX_MOVES);
+    return 0;
+}
+#define move_list_init(list) __move_list_init(&(list))
+
+void __move_list_append_move(struct move_list_t* list, int src, int dst) {
+    struct move_t* const move = &(list->moves[move_list_num_moves(*list)]);
+    move->src = src;
+    move->dst = dst;
+    ++list->nmoves;
+}
+#define move_list_append_move(list, src, dst) __move_list_append_move(&list, src, dst)
+/* #define move_list_append_move(list, src, dst) do {              \ */
+/*         (list).moves[move_list_num_moves(list)].src = (src);    \ */
+/*         (list).moves[move_list_num_moves(list)].dst = (dst);    \ */
+/*         ++(list).nmoves;                                        \ */
+/*     } while(0) */
+int move_list_append_capture(struct move_list_t* list, struct move_t* move) {
+    struct move_t* const movep = &(list->moves[move_list_num_moves(*list)]);
+    ++list->njumps;
+    movep->src = move->src;
+    movep->dst = move->dst;
+    memcpy(&(movep->path[0]), &(move->path[0]), sizeof(move->path[0]) * sizeof(move->path));
+    return 0;
+}
+
+void __print_move_list(FILE* file, struct move_list_t* list) {
+    int i;
+    const int moves = move_list_num_moves(*list);
+    if (moves > 0) {
+        __print_move(file, &(list->moves[0]));
+
+        for (i = 1; i < moves; ++i) {
+            printf(", ");
+        __print_move(file, &(list->moves[i]));
+        }
+    }
+}
+#define print_move_list(list) __print_move_list(stdout, &(list));
+
+/* 0 indexed */
 #define MASK(square) ((square_t)1 << (square))
+/* 1 indexed */
+#define SQUARE(square) MASK(square-1)
 #define PLACE(pieces, square) do { ((pieces) |= MASK(square)); } while(0)
 #define CLEAR(pieces, square) do { ((pieces) &= ~MASK(square)); } while(0)
 #define OCCUPIED(pieces, square) (pieces & MASK(square))
@@ -50,6 +113,14 @@ struct move_list_t {
 #define KINGS(state) ((state).black_kings | (state).white_kings)
 #define PAWNS(state) ((state).white | (state).black)
 #define FULLBOARD(state) (WHITE(state) | BLACK(state))
+#define UP_LEFT(square) ((square) + 4)
+#define UP_RIGHT(square) ((square) + 5)
+#define DOWN_LEFT(square) ((square) - 4)
+#define DOWN_RIGHT(square) ((square) - 3)
+#define JUMP_UP_LEFT(square) (UP_LEFT(UP_LEFT(square)))
+#define JUMP_UP_RIGHT(square) (UP_RIGHT(UP_RIGHT(square)))
+#define JUMP_DOWN_LEFT(square) (DOWN_LEFT(DOWN_LEFT(square)))
+#define JUMP_DOWN_RIGHT(square) (DOWN_RIGHT(DOWN_RIGHT(square)))
 
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
@@ -124,19 +195,6 @@ void __print_board(FILE* file, struct state_t* state) {
 }
 #define print_board(state) __print_board(stdout, &state);
 
-/* void __move_init(struct move_t* move) { */
-/*     memset(move, 0, sizeof(*move)); */
-/* } */
-/* #define move_init(move) do { memset(move, 0, sizeof(*move)); } while(0) */
-
-#define UP_LEFT(square) ((square) + 4)
-#define UP_RIGHT(square) ((square) + 5)
-#define DOWN_LEFT(square) ((square) - 4)
-#define DOWN_RIGHT(square) ((square) - 3)
-#define JUMP_UP_LEFT(square) (UP_LEFT(UP_LEFT(square)))
-#define JUMP_UP_RIGHT(square) (UP_RIGHT(UP_RIGHT(square)))
-#define JUMP_DOWN_LEFT(square) (DOWN_LEFT(DOWN_LEFT(square)))
-#define JUMP_DOWN_RIGHT(square) (DOWN_RIGHT(DOWN_RIGHT(square)))
 
 void __setup_start_position(struct state_t* state) {
     state->white = 4293918720;
@@ -246,25 +304,29 @@ void __setup_start_position(struct state_t* state) {
 /*     return 0; */
 /* } */
 
-int generate_moves(struct state_t* state) {
+int generate_moves(struct state_t* state, struct move_list_t* moves) {
     square_t square;
     if (black_move(*state)) {
         for (square = 0; square < 32; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
                 if (!OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
                     printf("%d - %d\n", square+1, UP_LEFT(square)+1);
+                    move_list_append_move(*moves, square+1, UP_LEFT(square)+1);
                 }
                 if (!OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
                     printf("%d - %d\n", square+1, UP_RIGHT(square)+1);
+                    move_list_append_move(*moves, square+1, UP_RIGHT(square)+1);
                 }
 
                 if (OCCUPIED(state->black_kings, square)) {
                     /* check kings move */
                     if (!OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
                         printf("%d - %d\n", square+1, DOWN_LEFT(square)+1);
+                        move_list_append_move(*moves, square+1, DOWN_LEFT(square)+1);
                     }
                     if (!OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
                         printf("%d - %d\n", square+1, DOWN_RIGHT(square)+1);
+                        move_list_append_move(*moves, square+1, DOWN_RIGHT(square)+1);
                     }
                 }
             }
@@ -274,18 +336,22 @@ int generate_moves(struct state_t* state) {
             if (OCCUPIED(WHITE(*state), square)) {
                 if (!OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
                     printf("%d - %d\n", square+1, DOWN_LEFT(square)+1);
+                    move_list_append_move(*moves, square+1, DOWN_LEFT(square)+1);
                 }
                 if (!OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
                     printf("%d - %d\n", square+1, DOWN_RIGHT(square)+1);
+                    move_list_append_move(*moves, square+1, DOWN_RIGHT(square)+1);
                 }
                 
                 if (OCCUPIED(state->white_kings, square)) {
                     /* check kings move */
                     if (!OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
                         printf("%d - %d\n", square+1, UP_LEFT(square)+1);
+                        move_list_append_move(*moves, square+1, UP_LEFT(square)+1);
                     }
                     if (!OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
                         printf("%d - %d\n", square+1, UP_RIGHT(square)+1);
+                        move_list_append_move(*moves, square+1, UP_RIGHT(square)+1);
                     }
                 }
             }
@@ -296,24 +362,34 @@ int generate_moves(struct state_t* state) {
 
 int main(int argc, char **argv) {
     struct state_t state;
-    /* struct move_t move; */
-    /* move_init(&move); */
-    state_init(state);
-    setup_start_position(state);
-    print_board(state);
-    /* state.black <<= 4; */
-    /* print_board(&state); */
+    struct move_list_t movelist;
+    /* move_list_init(&movelist); */
+    /* move_list_append_move(&movelist, 1, 5); */
+    /* move_list_append_move(&movelist, 2, 6); */
+    /* move_list_append_move(&movelist, 32, 28); */
+    /* print_move_list(movelist); */
+    /* printf("\n"); */
+    /* return 0; */
+    
+
+    /* state_init(state); */
+    /* setup_start_position(state); */
+    /* print_board(state); */
 
     state_init(state);
-
-    state.black = MASK(14);
+    move_list_init(movelist);
+    state.black = SQUARE(14) | SQUARE(15);
     state.black_kings = 0;    
     state.white = 0;
-    state.white_kings = 0;
+    state.white_kings = SQUARE(19);
     state.moves = 0;
 
     print_board(state);
-    generate_moves(&state);
+    generate_moves(&state, &movelist);
+
+    printf("Move list: ");
+    print_move_list(movelist);
+    
 
     /* move_capture(move, 1, 5); */
     /* move_append(move, 10); */
