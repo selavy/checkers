@@ -41,6 +41,12 @@ BOARD = """
 ---------------------------------
 """
 
+def foo(squares):
+    ret = 0
+    for s in squares:
+        ret |= (1 << s)
+    return hex(ret)
+
 def generate_from_board():
     lines = BOARD.split('\n')[1:-1]
 

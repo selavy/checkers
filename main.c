@@ -8,6 +8,15 @@
 /* #include <regex.h> */
 /* #include <ctype.h> */
 
+#define TOP 0x1e0000000U
+#define LEFT 0x2020202U
+#define RIGHT 0x101010100U
+#define BOTTOM 0x1eU
+#define TOP2 0x1e000000U
+#define LEFT2 0x20202020U
+#define RIGHT2 0x10101010U
+#define BOTTOM2 0x1e0U
+
 #define MAX_PATH 8
 #define MAX_MOVES 32
 #define COLUMNS 8
@@ -339,10 +348,12 @@ int main(int argc, char **argv) {
     /* setup_start_position(state); */
     /* print_board(state); */
 
-    state.black = SQUARE(14) | SQUARE(15);
+    /* state.black = SQUARE(14) | SQUARE(15); */
+    state.black = 0;
     state.black_kings = 0;    
     state.white = 0;
-    state.white_kings = SQUARE(19);
+    /* state.white_kings = SQUARE(19); */
+    state.white_kings = 0;
     state.moves = 0;
 
     print_board(state);
