@@ -120,8 +120,8 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
 #define ODDROW(square) ((square / 4) & 1)
 #define UP_LEFT(square) (ODDROW(square) ? (square) + 4 : (square) + 3)
 #define UP_RIGHT(square) (ODDROW(square) ? (square) + 5 : (square) + 4)
-#define DOWN_LEFT(square) (ODDROW(square) ? (square) - 5 : (square) - 4)
-#define DOWN_RIGHT(square) (ODDROW(square) ? (square) - 4 : (square) - 3)
+#define DOWN_LEFT(square) (ODDROW(square) ? (square) - 4 : (square) - 5)
+#define DOWN_RIGHT(square) (ODDROW(square) ? (square) - 3 : (square) - 4)
 #define JUMP_UP_LEFT(square) (UP_LEFT(UP_LEFT(square)))
 #define JUMP_UP_RIGHT(square) (UP_RIGHT(UP_RIGHT(square)))
 #define JUMP_DOWN_LEFT(square) (DOWN_LEFT(DOWN_LEFT(square)))
@@ -318,19 +318,21 @@ int generate_moves(struct state_t* state, struct move_list_t* moves) {
     } else {
         for (square = 0; square < 32; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
-                if (!OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
-                    move_list_append_move(*moves, square+1, DOWN_LEFT(square)+1);
-                }
-                if (!OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
-                    move_list_append_move(*moves, square+1, DOWN_RIGHT(square)+1);
+                if (!BOTTOM(square)) {
+                    if (!LEFT(square) && !OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
+                        move_list_append_move(*moves, square+1, DOWN_LEFT(square)+1);
+                    }
+                    if (!RIGHT(square) && !OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
+                        move_list_append_move(*moves, square+1, DOWN_RIGHT(square)+1);
+                    }
                 }
                 
-                if (OCCUPIED(state->white_kings, square)) {
+                if (OCCUPIED(state->white_kings, square) && !TOP(square)) {
                     /* check king moves */
-                    if (!OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
+                    if (!LEFT(square) && !OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
                         move_list_append_move(*moves, square+1, UP_LEFT(square)+1);
                     }
-                    if (!OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
+                    if (!RIGHT(square) && !OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
                         move_list_append_move(*moves, square+1, UP_RIGHT(square)+1);
                     }
                 }
@@ -352,8 +354,8 @@ int main(int argc, char **argv) {
     /* setup_start_position(state); */
     /* print_board(state); */
 
-    state.black = SQUARE(8);
-    state.black_kings = 0;    
+    state.black = 0;
+    state.black_kings = SQUARE(10);    
     state.white = 0;
     state.white_kings = 0;
     state.moves = 0;
