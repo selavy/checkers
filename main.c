@@ -27,8 +27,8 @@ struct state_t {
     uint8_t moves;
 };
 
-static char * __unittest = 0;
-#define ENTER_UNITTEST(name) do { __unittest = name; } while(0)
+static const char * __unittest = 0;
+#define ENTER_UNITTEST() do { __unittest = __func__; } while(0)
 #define EXIT_UNITTEST() do { printf("Passed %s.\n", __unittest); } while(0)
 #define __UNITTEST_FAIL(line) do {                                      \
         fprintf(stderr, "Unit Test [%s] failed on line: %d\n", __unittest, line); \
@@ -419,7 +419,7 @@ void unittest_move_list_compare() {
     struct move_list_t rhs;
     struct move_t move;
 
-    ENTER_UNITTEST("move_list_compare");
+    ENTER_UNITTEST();
     
     move_list_init(movelist);
     move_list_init(rhs);
@@ -450,7 +450,7 @@ void unittest_move_list_sort() {
     struct move_t movea;
     struct move_t moveb;
 
-    ENTER_UNITTEST("move_list_sort");
+    ENTER_UNITTEST();
 
     move_list_init(lhs);
     move_list_init(rhs);
@@ -496,7 +496,7 @@ void unittest_generate_moves() {
     struct state_t state;
     struct move_list_t movelist;
     struct move_list_t expected;
-    ENTER_UNITTEST("generate_moves");
+    ENTER_UNITTEST();
 
     /* black on 14 */
     state_init(state);
@@ -568,6 +568,15 @@ void unittest_generate_moves() {
     EXIT_UNITTEST();
 }
 
+void unittest_generate_jumps() {
+    /* struct state_t state; */
+    /* struct move_list_t movelist; */
+    /* struct move_list_t expected; */
+    ENTER_UNITTEST();
+    
+    EXIT_UNITTEST();
+}
+
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t movelist;
@@ -575,6 +584,7 @@ int main(int argc, char **argv) {
     state_init(state);
     move_list_init(movelist);
 
+    /* unit tests */
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
@@ -583,22 +593,6 @@ int main(int argc, char **argv) {
     /* state_init(state); */
     /* setup_start_position(state); */
     /* print_board(state); */
-
-    /* state.black = 0; */
-    /* state.black_kings = SQUARE(10);     */
-    /* state.white = 0; */
-    /* state.white_kings = 0; */
-    /* state.moves = 0; */
-
-    /* print_board(state); */
-    /* generate_captures(&state, &movelist); */
-    /* printf("Captures: "); */
-    /* print_move_list(movelist); */
-    /* printf("\n"); */
-    /* generate_moves(&state, &movelist); */
-
-    /* printf("Move list: "); */
-    /* print_move_list(movelist); */
 
     printf("Bye.\n");
     return 0;
