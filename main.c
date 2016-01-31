@@ -4,11 +4,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 /* #include <locale.h> */
 /* #include <regex.h> */
 /* #include <ctype.h> */
-
-
 
 #define MAX_PATH 8
 #define MAX_MOVES 32
@@ -29,14 +28,36 @@ struct state_t {
     uint8_t moves;
 };
 
+static char * unittest = 0;
+#define ENTER_UNITTEST(name) do { unittest = name; } while(0)
+#define UNITTEST_ASSERT_MSG(msg, line) do { fprintf(stderr, "Unit Test [%s] failed on line: %d\n", unittest, line); exit(1); } while(0)
+#define UNITTEST_ASSERT(msg) UNITTEST_ASSERT_MSG(msg, __LINE__)
+
 /* moves are 1-indexed so 0 can indicate that the path is empty */
 struct move_t {
     uint8_t src; /* square started on */
     uint8_t dst; /* square ended on */
     uint8_t path[MAX_PATH]; /* path traveled if this was a multi-jump */
 };
-
 #define move_init(move) memset(&(move), 0, sizeof(move))
+
+/* move_compare: compare 2 moves for equality
+ * 0  => equal
+ * 1  => lhs > rhs
+ * -1 => lhs < rhs
+ */
+int move_compare(struct move_t* lhs, struct move_t* rhs) {
+    int ret = 0;
+    
+    if (lhs->src != rhs->src) {
+        ret = lhs->src - rhs->src;
+    } else if (lhs->dst != rhs->dst) {
+        ret = lhs->dst - rhs->dst;
+    } else {
+        ret = memcmp(&(lhs->path[0]), &(rhs->path[0]), sizeof(lhs->path[0]) * MAX_PATH);
+    }
+    return ret;
+}
 
 struct move_list_t {
     struct move_t moves[MAX_MOVES];
@@ -44,6 +65,38 @@ struct move_list_t {
     int nmoves; /* number of regular moves */
 };
 #define move_list_num_moves(list) ((list).njumps + (list).nmoves)
+
+/* move_list_compare: compare 2 move_lists for strict equality
+ * 0  => equal
+ * 1  => lhs > rhs
+ * -1 => lhs < rhs
+ */
+int __move_list_compare(struct move_list_t* lhs, struct move_list_t* rhs) {
+    int ret;
+    
+    if (lhs->njumps != rhs->njumps) {
+        ret = lhs->njumps - rhs->njumps;
+    } else if (lhs->nmoves != rhs->nmoves) {
+        ret = lhs->nmoves - rhs->nmoves;
+    } else if (move_list_num_moves(*lhs) != move_list_num_moves(*rhs)) {
+        ret = move_list_num_moves(*lhs) - move_list_num_moves(*rhs);
+    } else {
+        ret = memcmp(&(lhs->moves[0]), &(rhs->moves[0]), sizeof(lhs->moves[0]) * MAX_MOVES);
+    }
+    return ret;
+}
+#define move_list_compare(lhs, rhs) __move_list_compare(&lhs, &rhs)
+
+int __move_compare_generic(const void* lhs, const void* rhs) {
+    return move_compare((struct move_t*)lhs, (struct move_t*)rhs);
+}
+
+void move_list_sort(struct move_list_t* list) {
+    int nmoves = move_list_num_moves(*list);
+    if (nmoves != 0) {
+        qsort(&(list->moves[0]), nmoves, sizeof(list->moves), &__move_compare_generic);
+    }
+}
 
 /* TODO: add is_capture parameter */
 void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
@@ -342,34 +395,100 @@ int generate_moves(struct state_t* state, struct move_list_t* moves) {
     return 0;
 }
 
+void unittest_move_list_compare() {
+    struct move_list_t movelist;
+    struct move_list_t rhs;
+    struct move_t move;
+
+    ENTER_UNITTEST("move_list_compare");
+    
+    move_list_init(movelist);
+    move_list_init(rhs);
+
+    assert(move_list_compare(movelist, rhs) == 0);
+    move_list_append_move(movelist, 1, 5);
+    move_list_append_move(rhs, 1, 5);
+    assert(move_list_compare(movelist, rhs) == 0);
+    move_list_append_move(movelist, 14, 19);
+    move_list_append_move(rhs, 14, 19);
+    assert(move_list_compare(movelist, rhs) == 0);
+    move.src = 18;
+    move.dst = JUMP_UP_RIGHT(move.src);
+    move_list_append_capture(movelist, move);
+    assert(move_list_compare(movelist, rhs) != 0);
+    move_list_append_capture(rhs, move);
+    assert(move_list_compare(movelist, rhs) == 0);
+    move.src = 9;
+    move.dst = JUMP_UP_RIGHT(move.src);
+
+    printf("Passed move_list_compare.\n");
+}
+
+void unittest_move_list_sort() {
+    struct move_list_t lhs;
+    struct move_list_t rhs;
+    struct move_t movea;
+    struct move_t moveb;
+
+    ENTER_UNITTEST("move_list_sort");
+
+    move_list_init(lhs);
+    move_list_init(rhs);
+
+    movea.src = 14;
+    movea.dst = JUMP_UP_LEFT(movea.src);
+    moveb.src = 15;
+    moveb.dst = JUMP_DOWN_LEFT(moveb.src);
+
+    /* lhs has movea then moveb */
+    move_list_append_capture(lhs, movea);
+    move_list_append_capture(lhs, moveb);
+
+    /* rhs has moveb then movea */
+    move_list_append_capture(rhs, moveb);
+    move_list_append_capture(rhs, movea);
+
+    assert(move_list_compare(lhs, rhs) != 0);
+
+    move_list_sort(&lhs);
+    move_list_sort(&rhs);
+
+    UNITTEST_ASSERT(move_list_compare(lhs, rhs) == 0);
+
+    printf("Passed move_list_sort.\n");
+}
+
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t movelist;
     
     state_init(state);
     move_list_init(movelist);
+
+    unittest_move_list_compare();
+    unittest_move_list_sort();
     
     /* -- to show starting position -- */
     /* state_init(state); */
     /* setup_start_position(state); */
     /* print_board(state); */
 
-    state.black = 0;
-    state.black_kings = SQUARE(10);    
-    state.white = 0;
-    state.white_kings = 0;
-    state.moves = 0;
+    /* state.black = 0; */
+    /* state.black_kings = SQUARE(10);     */
+    /* state.white = 0; */
+    /* state.white_kings = 0; */
+    /* state.moves = 0; */
 
-    print_board(state);
-    generate_captures(&state, &movelist);
-    printf("Captures: ");
-    print_move_list(movelist);
-    printf("\n");
-    generate_moves(&state, &movelist);
+    /* print_board(state); */
+    /* generate_captures(&state, &movelist); */
+    /* printf("Captures: "); */
+    /* print_move_list(movelist); */
+    /* printf("\n"); */
+    /* generate_moves(&state, &movelist); */
 
-    printf("Move list: ");
-    print_move_list(movelist);
+    /* printf("Move list: "); */
+    /* print_move_list(movelist); */
 
-    printf("\n\nBye.\n");
+    printf("Bye.\n");
     return 0;
 }
