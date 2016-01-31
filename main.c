@@ -161,6 +161,22 @@ void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
 }
 #define move_list_append_capture(list, move) __move_list_append_capture(&(list), &(move))
 
+/* #define APPEND_CAPTURE(list, src, dst) do {     \ */
+/*         struct move_t move;                     \ */
+/*         move_init(move);                        \ */
+/*         move.src = src;                         \ */
+/*         move.dst = dst;                         \ */
+/*         move_list_append_capture(list, move);   \ */
+/*     } while(0) */
+
+void APPEND_CAPTURE(struct move_list_t* list, int src, int dst) {
+    struct move_t move;
+    move_init(move);
+    move.src = src;
+    move.dst = dst;
+    move_list_append_capture(*list, move);
+}
+
 void __print_move_list(FILE* file, struct move_list_t* list) {
     int i;
     const int moves = move_list_num_moves(*list);
@@ -194,10 +210,10 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
 #define UP_RIGHT(square) (ODDROW(square) ? (square) + 5 : (square) + 4)
 #define DOWN_LEFT(square) (ODDROW(square) ? (square) - 4 : (square) - 5)
 #define DOWN_RIGHT(square) (ODDROW(square) ? (square) - 3 : (square) - 4)
-#define JUMP_UP_LEFT(square) (UP_LEFT(UP_LEFT(square)))
-#define JUMP_UP_RIGHT(square) (UP_RIGHT(UP_RIGHT(square)))
-#define JUMP_DOWN_LEFT(square) (DOWN_LEFT(DOWN_LEFT(square)))
-#define JUMP_DOWN_RIGHT(square) (DOWN_RIGHT(DOWN_RIGHT(square)))
+#define JUMP_UP_LEFT(square) ((square) + 7)
+#define JUMP_UP_RIGHT(square) ((square) + 9)
+#define JUMP_DOWN_LEFT(square) ((square) - 9)
+#define JUMP_DOWN_RIGHT(square) ((square) - 7)
 #define TOP(square) (MASK(square) & (MASK(28) | MASK(29) | MASK(30) | MASK(31)))
 #define LEFT(square) (MASK(square) & (MASK(0) | MASK(8) | MASK(16) | MASK(24)))
 #define RIGHT(square) (MASK(square) & (MASK(7) | MASK(15) | MASK(23) | MASK(31)))
@@ -304,13 +320,13 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
                 if (OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
-                    move.src = square+1;
-                    move.dst = JUMP_UP_LEFT(square);
+                    move.src = square + 1;
+                    move.dst = JUMP_UP_LEFT(square) + 1;
                     move_list_append_capture(*moves, move);
                 }
                 if (OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
-                    move.src = square+1;
-                    move.dst = JUMP_UP_RIGHT(square);
+                    move.src = square + 1;
+                    move.dst = JUMP_UP_RIGHT(square) + 1;
                     move_list_append_capture(*moves, move);                    
                 }
 
@@ -318,12 +334,12 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     /* check king moves */
                     if (OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                         move.src = square + 1;
-                        move.dst = JUMP_DOWN_LEFT(square);
+                        move.dst = JUMP_DOWN_LEFT(square) + 1;
                         move_list_append_capture(*moves, move);                        
                     }
                     if (OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                         move.src = square + 1;
-                        move.dst = JUMP_DOWN_RIGHT(square);
+                        move.dst = JUMP_DOWN_RIGHT(square) + 1;
                         move_list_append_capture(*moves, move);                        
                     }
                 }
@@ -333,13 +349,13 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
         for (square = 0; square < 32; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
                 if (OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
-                    move.src = square+1;
-                    move.dst = JUMP_DOWN_LEFT(square);
+                    move.src = square + 1;
+                    move.dst = JUMP_DOWN_LEFT(square) + 1;
                     move_list_append_capture(*moves, move);                    
                 }
                 if (OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
-                    move.src = square+1;
-                    move.dst = JUMP_DOWN_RIGHT(square);
+                    move.src = square + 1;
+                    move.dst = JUMP_DOWN_RIGHT(square) + 1;
                     move_list_append_capture(*moves, move);                    
                 }
 
@@ -347,12 +363,12 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     /* check king moves */
                     if (OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                         move.src = square + 1;
-                        move.dst = JUMP_UP_LEFT(square);
+                        move.dst = JUMP_UP_LEFT(square) + 1;
                         move_list_append_capture(*moves, move);
                     }
                     if (OCCUPIED(BLACK(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                         move.src = square + 1;
-                        move.dst = JUMP_UP_RIGHT(square);
+                        move.dst = JUMP_UP_RIGHT(square) + 1;
                         move_list_append_capture(*moves, move);
                     }
                 }
@@ -568,11 +584,75 @@ void unittest_generate_moves() {
     EXIT_UNITTEST();
 }
 
-void unittest_generate_jumps() {
-    /* struct state_t state; */
-    /* struct move_list_t movelist; */
-    /* struct move_list_t expected; */
+void unittest_generate_captures() {
+    struct state_t state;
+    struct move_list_t movelist;
+    struct move_list_t expected;
     ENTER_UNITTEST();
+
+    /* black on 14 */    
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(14);
+    generate_captures(&state, &movelist);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black on 14, white on 19 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(14);
+    state.white = SQUARE(19);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 14, 23);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 14, black on 10 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(10);
+    state.white = SQUARE(14);
+    state.moves = 1; /* make it white to move */
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 14, 5);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black on 14, white on 19 and 18*/
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(14);
+    state.white = SQUARE(19) | SQUARE(18);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 14, 23);
+    APPEND_CAPTURE(&expected, 14, 21);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+    
+    /* black on 14, white on 18, 19, 10, 11 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(14);
+    state.white = SQUARE(19) | SQUARE(18) | SQUARE(10) | SQUARE(11);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 14, 23);
+    APPEND_CAPTURE(&expected, 14, 21);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black king on 14, white on 18, 19, 10, 11 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black_kings = SQUARE(14);
+    state.white = SQUARE(19) | SQUARE(18) | SQUARE(10) | SQUARE(11);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 14, 5);
+    APPEND_CAPTURE(&expected, 14, 7);
+    APPEND_CAPTURE(&expected, 14, 21); 
+    APPEND_CAPTURE(&expected, 14, 23);   
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
     
     EXIT_UNITTEST();
 }
@@ -588,6 +668,7 @@ int main(int argc, char **argv) {
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
+    unittest_generate_captures();
     
     /* -- to show starting position -- */
     /* state_init(state); */
