@@ -553,6 +553,17 @@ void unittest_generate_moves() {
     generate_moves(&state, &movelist);
     move_list_append_move(expected, 14, 19);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 14, black on 10 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.white = SQUARE(14);
+    state.black = SQUARE(10);
+    state.moves = 1; /* make it white to move */
+    generate_moves(&state, &movelist);
+    move_list_append_move(expected, 14, 11);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
     
     EXIT_UNITTEST();
 }
