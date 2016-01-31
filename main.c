@@ -137,13 +137,12 @@ void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
 }
 #define print_move(move, is_capture) __print_move(stdout, &(move))
 
-int __move_list_init(struct move_list_t* list) {
+int move_list_init(struct move_list_t* list) {
     list->njumps = 0;
     list->nmoves = 0;
     memset(&(list->moves[0]), 0, sizeof(list->moves[0]) * MAX_MOVES);
     return 0;
 }
-#define move_list_init(list) __move_list_init(&(list))
 
 void __move_list_append_move(struct move_list_t* list, int src, int dst) {
     struct move_t* const move = &(list->moves[move_list_num_moves(*list)]);
@@ -428,8 +427,8 @@ void unittest_move_list_compare() {
 
     ENTER_UNITTEST();
     
-    move_list_init(movelist);
-    move_list_init(rhs);
+    move_list_init(&movelist);
+    move_list_init(&rhs);
     move_init(&move);
 
     UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
@@ -459,8 +458,8 @@ void unittest_move_list_sort() {
 
     ENTER_UNITTEST();
 
-    move_list_init(lhs);
-    move_list_init(rhs);
+    move_list_init(&lhs);
+    move_list_init(&rhs);
     move_init(&movea);
     move_init(&moveb);
 
@@ -507,8 +506,8 @@ void unittest_generate_moves() {
 
     /* black on 14 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(14);
     generate_moves(&state, &movelist);
     move_list_append_move(expected, 14, 18);
@@ -517,8 +516,8 @@ void unittest_generate_moves() {
 
     /* white on 14 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.white = SQUARE(14);
     state.moves = 1; /* make it white to move */
     generate_moves(&state, &movelist);
@@ -528,8 +527,8 @@ void unittest_generate_moves() {
 
     /* black king on 14 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black_kings = SQUARE(14);
     generate_moves(&state, &movelist);
     move_list_append_move(expected, 14, 18);
@@ -540,8 +539,8 @@ void unittest_generate_moves() {
 
     /* white king on 14 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.white_kings = SQUARE(14);
     state.moves = 1; /* make it white to move */
     generate_moves(&state, &movelist);
@@ -553,8 +552,8 @@ void unittest_generate_moves() {
 
     /* black on 14, white on 18 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(14);
     state.white = SQUARE(18);
     generate_moves(&state, &movelist);
@@ -563,8 +562,8 @@ void unittest_generate_moves() {
 
     /* white on 14, black on 10 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.white = SQUARE(14);
     state.black = SQUARE(10);
     state.moves = 1; /* make it white to move */
@@ -583,16 +582,16 @@ void unittest_generate_captures() {
 
     /* black on 14 */    
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(14);
     generate_captures(&state, &movelist);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 14, white on 19 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(14);
     state.white = SQUARE(19);
     generate_captures(&state, &movelist);
@@ -601,8 +600,8 @@ void unittest_generate_captures() {
 
     /* white on 14, black on 10 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(10);
     state.white = SQUARE(14);
     state.moves = 1; /* make it white to move */
@@ -612,8 +611,8 @@ void unittest_generate_captures() {
 
     /* black on 14, white on 19 and 18*/
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(14);
     state.white = SQUARE(19) | SQUARE(18);
     generate_captures(&state, &movelist);
@@ -623,8 +622,8 @@ void unittest_generate_captures() {
     
     /* black on 14, white on 18, 19, 10, 11 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(14);
     state.white = SQUARE(19) | SQUARE(18) | SQUARE(10) | SQUARE(11);
     generate_captures(&state, &movelist);
@@ -634,8 +633,8 @@ void unittest_generate_captures() {
 
     /* black king on 14, white on 18, 19, 10, 11 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black_kings = SQUARE(14);
     state.white = SQUARE(19) | SQUARE(18) | SQUARE(10) | SQUARE(11);
     generate_captures(&state, &movelist);
@@ -647,8 +646,8 @@ void unittest_generate_captures() {
 
     /* black on 9, white on 13 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(9);
     state.white = SQUARE(13);
     generate_captures(&state, &movelist);
@@ -657,8 +656,8 @@ void unittest_generate_captures() {
 
     /* black on 17, white on 21, 13 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(17);
     state.white = SQUARE(21) | SQUARE(13);
     generate_captures(&state, &movelist);
@@ -667,8 +666,8 @@ void unittest_generate_captures() {
 
     /* black on 24, white on 28, 20 */
     state_init(&state);
-    move_list_init(movelist);
-    move_list_init(expected);
+    move_list_init(&movelist);
+    move_list_init(&expected);
     state.black = SQUARE(24);
     state.white = SQUARE(28) | SQUARE(20);
     generate_captures(&state, &movelist);
@@ -683,7 +682,7 @@ int main(int argc, char **argv) {
     struct move_list_t movelist;
     
     state_init(&state);
-    move_list_init(movelist);
+    move_list_init(&movelist);
 
     /* unit tests */
     unittest_move_list_compare();
