@@ -27,11 +27,12 @@ struct state_t {
     uint8_t moves;
 };
 
-static char * unittest = 0;
-#define ENTER_UNITTEST(name) do { unittest = name; } while(0)
-#define __UNITTEST_FAIL(line) do {                                              \
-        fprintf(stderr, "Unit Test [%s] failed on line: %d\n", unittest, line); \
-        exit(1);                                                                \
+static char * __unittest = 0;
+#define ENTER_UNITTEST(name) do { __unittest = name; } while(0)
+#define EXIT_UNITTEST() do { printf("Passed %s.\n", __unittest); } while(0)
+#define __UNITTEST_FAIL(line) do {                                      \
+        fprintf(stderr, "Unit Test [%s] failed on line: %d\n", __unittest, line); \
+        exit(1);                                                        \
     } while(0)
 #define UNITTEST_ASSERT(actual, expected) do {  \
         if (actual != expected) {               \
@@ -39,9 +40,21 @@ static char * unittest = 0;
         }                                       \
     } while(0)
 #define UNITTEST_ASSERT_NEQU(actual, expected) do { \
-        if (actual == expected) {                 \
-            __UNITTEST_FAIL(__LINE__);            \
-        }                                         \
+        if (actual == expected) {                   \
+            __UNITTEST_FAIL(__LINE__);              \
+        }                                           \
+    } while(0)
+#define UNITTEST_ASSERT_MOVELIST(actual, expected) do { \
+        move_list_sort(&actual);                        \
+        move_list_sort(&expected);                      \
+        if (move_list_compare(actual, expected) != 0) { \
+            printf("Expected: ");                       \
+            print_move_list(expected);                  \
+            printf("\nActual: ");                       \
+            print_move_list(actual);                    \
+            printf("\n");                               \
+            __UNITTEST_FAIL(__LINE__);                  \
+        }                                               \
     } while(0)
 
 /* moves are 1-indexed so 0 can indicate that the path is empty */
@@ -139,11 +152,6 @@ void __move_list_append_move(struct move_list_t* list, int src, int dst) {
     ++list->nmoves;
 }
 #define move_list_append_move(list, src, dst) __move_list_append_move(&list, src, dst)
-/* #define move_list_append_move(list, src, dst) do {              \ */
-/*         (list).moves[move_list_num_moves(list)].src = (src);    \ */
-/*         (list).moves[move_list_num_moves(list)].dst = (dst);    \ */
-/*         ++(list).nmoves;                                        \ */
-/*     } while(0) */
 void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
     struct move_t* const movep = &(list->moves[move_list_num_moves(*list)]);
     ++list->njumps;
@@ -433,7 +441,7 @@ void unittest_move_list_compare() {
     move.src = 9;
     move.dst = JUMP_UP_RIGHT(move.src);
 
-    printf("Passed move_list_compare.\n");
+    EXIT_UNITTEST();
 }
 
 void unittest_move_list_sort() {
@@ -481,7 +489,72 @@ void unittest_move_list_sort() {
     move_list_append_move(rhs, 2, UP_LEFT(2));
     move_list_append_move(rhs, 2, UP_RIGHT(2));
 
-    printf("Passed move_list_sort.\n");
+    EXIT_UNITTEST();
+}
+
+void unittest_generate_moves() {
+    struct state_t state;
+    struct move_list_t movelist;
+    struct move_list_t expected;
+    ENTER_UNITTEST("generate_moves");
+
+    /* black on 14 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(14);
+    generate_moves(&state, &movelist);
+    move_list_append_move(expected, 14, 18);
+    move_list_append_move(expected, 14, 19);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 14 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.white = SQUARE(14);
+    state.moves = 1; /* make it white to move */
+    generate_moves(&state, &movelist);
+    move_list_append_move(expected, 14, 10);
+    move_list_append_move(expected, 14, 11);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black king on 14 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black_kings = SQUARE(14);
+    generate_moves(&state, &movelist);
+    move_list_append_move(expected, 14, 18);
+    move_list_append_move(expected, 14, 19);
+    move_list_append_move(expected, 14, 10);
+    move_list_append_move(expected, 14, 11);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white king on 14 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.white_kings = SQUARE(14);
+    state.moves = 1; /* make it white to move */
+    generate_moves(&state, &movelist);
+    move_list_append_move(expected, 14, 18);
+    move_list_append_move(expected, 14, 19);
+    move_list_append_move(expected, 14, 10);
+    move_list_append_move(expected, 14, 11);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black on 14, white on 18 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(14);
+    state.white = SQUARE(18);
+    generate_moves(&state, &movelist);
+    move_list_append_move(expected, 14, 19);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+    
+    EXIT_UNITTEST();
 }
 
 int main(int argc, char **argv) {
@@ -493,6 +566,7 @@ int main(int argc, char **argv) {
 
     unittest_move_list_compare();
     unittest_move_list_sort();
+    unittest_generate_moves();
     
     /* -- to show starting position -- */
     /* state_init(state); */
