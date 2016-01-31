@@ -63,7 +63,7 @@ struct move_t {
     uint8_t dst; /* square ended on */
     uint8_t path[MAX_PATH]; /* path traveled if this was a multi-jump */
 };
-#define move_init(move) memset(&(move), 0, sizeof(move))
+#define move_init(move) memset(move, 0, sizeof(*move))
 
 /* move_compare: compare 2 moves for equality
  * 0  => equal
@@ -161,17 +161,9 @@ void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
 }
 #define move_list_append_capture(list, move) __move_list_append_capture(&(list), &(move))
 
-/* #define APPEND_CAPTURE(list, src, dst) do {     \ */
-/*         struct move_t move;                     \ */
-/*         move_init(move);                        \ */
-/*         move.src = src;                         \ */
-/*         move.dst = dst;                         \ */
-/*         move_list_append_capture(list, move);   \ */
-/*     } while(0) */
-
 void APPEND_CAPTURE(struct move_list_t* list, int src, int dst) {
     struct move_t move;
-    move_init(move);
+    move_init(&move);
     move.src = src;
     move.dst = dst;
     move_list_append_capture(*list, move);
@@ -311,11 +303,10 @@ void __setup_start_position(struct state_t* state) {
      (state).black_kings = 0;                   \
      (state).moves = 0;
 
-/* TODO: generate bitmaps to test for sides of board squares */
 int generate_captures(struct state_t* state, struct move_list_t* moves) {
     square_t square;
     struct move_t move;
-    move_init(move);
+    move_init(&move);
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
@@ -439,7 +430,7 @@ void unittest_move_list_compare() {
     
     move_list_init(movelist);
     move_list_init(rhs);
-    move_init(move);
+    move_init(&move);
 
     UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
     move_list_append_move(movelist, 1, 5);
@@ -470,8 +461,8 @@ void unittest_move_list_sort() {
 
     move_list_init(lhs);
     move_list_init(rhs);
-    move_init(movea);
-    move_init(moveb);
+    move_init(&movea);
+    move_init(&moveb);
 
     movea.src = 14;
     movea.dst = JUMP_UP_LEFT(movea.src);
