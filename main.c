@@ -4,9 +4,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-/* #include <locale.h> */
-/* #include <regex.h> */
-/* #include <ctype.h> */
 
 #define MAX_PATH 8
 #define MAX_MOVES 32
@@ -44,17 +41,17 @@ static const char * __unittest = 0;
             __UNITTEST_FAIL(__LINE__);              \
         }                                           \
     } while(0)
-#define UNITTEST_ASSERT_MOVELIST(actual, expected) do { \
-        move_list_sort(&actual);                        \
-        move_list_sort(&expected);                      \
-        if (move_list_compare(actual, expected) != 0) { \
-            printf("Expected: ");                       \
-            print_move_list(expected);                  \
-            printf("\nActual: ");                       \
-            print_move_list(actual);                    \
-            printf("\n");                               \
-            __UNITTEST_FAIL(__LINE__);                  \
-        }                                               \
+#define UNITTEST_ASSERT_MOVELIST(actual, expected) do {     \
+        move_list_sort(&actual);                            \
+        move_list_sort(&expected);                          \
+        if (move_list_compare(&actual, &expected) != 0) {   \
+            printf("Expected: ");                           \
+            print_move_list(expected);                      \
+            printf("\nActual: ");                           \
+            print_move_list(actual);                        \
+            printf("\n");                                   \
+            __UNITTEST_FAIL(__LINE__);                      \
+        }                                                   \
     } while(0)
 
 /* moves are 1-indexed so 0 can indicate that the path is empty */
@@ -95,7 +92,7 @@ struct move_list_t {
  * 1  => lhs > rhs
  * -1 => lhs < rhs
  */
-int __move_list_compare(struct move_list_t* lhs, struct move_list_t* rhs) {
+int move_list_compare(struct move_list_t* lhs, struct move_list_t* rhs) {
     int ret;
     
     if (lhs->njumps != rhs->njumps) {
@@ -109,7 +106,6 @@ int __move_list_compare(struct move_list_t* lhs, struct move_list_t* rhs) {
     }
     return ret;
 }
-#define move_list_compare(lhs, rhs) __move_list_compare(&lhs, &rhs)
 
 int __move_compare_generic(const void* lhs, const void* rhs) {
     return move_compare((struct move_t*)lhs, (struct move_t*)rhs);
@@ -431,19 +427,19 @@ void unittest_move_list_compare() {
     move_list_init(&rhs);
     move_init(&move);
 
-    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
+    UNITTEST_ASSERT_MOVELIST(movelist, rhs);
     move_list_append_move(movelist, 1, 5);
     move_list_append_move(rhs, 1, 5);
-    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
+    UNITTEST_ASSERT_MOVELIST(movelist, rhs);
     move_list_append_move(movelist, 14, 19);
     move_list_append_move(rhs, 14, 19);
-    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
+    UNITTEST_ASSERT_MOVELIST(movelist, rhs);
     move.src = 18;
     move.dst = JUMP_UP_RIGHT(move.src);
     move_list_append_capture(movelist, move);
-    UNITTEST_ASSERT_NEQU(move_list_compare(movelist, rhs), 0);
+    UNITTEST_ASSERT_NEQU(move_list_compare(&movelist, &rhs), 0);
     move_list_append_capture(rhs, move);
-    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
+    UNITTEST_ASSERT_MOVELIST(movelist, rhs);
     move.src = 9;
     move.dst = JUMP_UP_RIGHT(move.src);
 
@@ -480,12 +476,12 @@ void unittest_move_list_sort() {
     move_list_append_capture(rhs, movea);
     move_list_append_move(rhs, 3, UP_RIGHT(3));    
 
-    UNITTEST_ASSERT_NEQU(move_list_compare(lhs, rhs), 0);
+    UNITTEST_ASSERT_NEQU(move_list_compare(&lhs, &rhs), 0);
     
     move_list_sort(&lhs);
     move_list_sort(&rhs);
 
-    UNITTEST_ASSERT(move_list_compare(lhs, rhs), 0);
+    UNITTEST_ASSERT_MOVELIST(lhs, rhs);
 
     move_list_append_move(lhs, 2, UP_LEFT(2));
     move_list_append_move(lhs, 18, UP_LEFT(18));
