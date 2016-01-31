@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
 /* #include <locale.h> */
 /* #include <regex.h> */
 /* #include <ctype.h> */
@@ -38,6 +37,11 @@ static char * unittest = 0;
         if (actual != expected) {               \
             __UNITTEST_FAIL(__LINE__);          \
         }                                       \
+    } while(0)
+#define UNITTEST_ASSERT_NEQU(actual, expected) do { \
+        if (actual == expected) {                 \
+            __UNITTEST_FAIL(__LINE__);            \
+        }                                         \
     } while(0)
 
 /* moves are 1-indexed so 0 can indicate that the path is empty */
@@ -413,19 +417,19 @@ void unittest_move_list_compare() {
     move_list_init(rhs);
     move_init(move);
 
-    assert(move_list_compare(movelist, rhs) == 0);
+    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
     move_list_append_move(movelist, 1, 5);
     move_list_append_move(rhs, 1, 5);
-    assert(move_list_compare(movelist, rhs) == 0);
+    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
     move_list_append_move(movelist, 14, 19);
     move_list_append_move(rhs, 14, 19);
-    assert(move_list_compare(movelist, rhs) == 0);
+    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
     move.src = 18;
     move.dst = JUMP_UP_RIGHT(move.src);
     move_list_append_capture(movelist, move);
-    assert(move_list_compare(movelist, rhs) != 0);
+    UNITTEST_ASSERT_NEQU(move_list_compare(movelist, rhs), 0);
     move_list_append_capture(rhs, move);
-    assert(move_list_compare(movelist, rhs) == 0);
+    UNITTEST_ASSERT(move_list_compare(movelist, rhs), 0);
     move.src = 9;
     move.dst = JUMP_UP_RIGHT(move.src);
 
@@ -454,26 +458,28 @@ void unittest_move_list_sort() {
     move_list_append_capture(lhs, movea);
     move_list_append_capture(lhs, moveb);
     move_list_append_move(lhs, 21, UP_LEFT(21));
+    move_list_append_move(lhs, 3, UP_RIGHT(3));
 
     /* rhs has moveb then movea */
     move_list_append_capture(rhs, moveb);
     move_list_append_move(rhs, 21, UP_LEFT(21));
     move_list_append_capture(rhs, movea);
+    move_list_append_move(rhs, 3, UP_RIGHT(3));    
 
-    assert(move_list_compare(lhs, rhs) != 0);
-
-    printf("Before: ");
-    print_move_list(lhs); printf("\n");
-    print_move_list(rhs); printf("\n");
+    UNITTEST_ASSERT_NEQU(move_list_compare(lhs, rhs), 0);
     
     move_list_sort(&lhs);
     move_list_sort(&rhs);
 
-    printf("After: ");
-    print_move_list(lhs); printf("\n");
-    print_move_list(rhs); printf("\n");
-
     UNITTEST_ASSERT(move_list_compare(lhs, rhs), 0);
+
+    move_list_append_move(lhs, 2, UP_LEFT(2));
+    move_list_append_move(lhs, 18, UP_LEFT(18));
+    move_list_append_move(lhs, 2, UP_RIGHT(2));
+    
+    move_list_append_move(rhs, 18, UP_LEFT(18));
+    move_list_append_move(rhs, 2, UP_LEFT(2));
+    move_list_append_move(rhs, 2, UP_RIGHT(2));
 
     printf("Passed move_list_sort.\n");
 }
