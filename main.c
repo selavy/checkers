@@ -653,6 +653,36 @@ void unittest_generate_captures() {
     APPEND_CAPTURE(&expected, 14, 21); 
     APPEND_CAPTURE(&expected, 14, 23);   
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black on 9, white on 13 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(9);
+    state.white = SQUARE(13);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 9, 18);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black on 17, white on 21, 13 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(17);
+    state.white = SQUARE(21) | SQUARE(13);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 17, 26);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* black on 24, white on 28, 20 */
+    state_init(state);
+    move_list_init(movelist);
+    move_list_init(expected);
+    state.black = SQUARE(24);
+    state.white = SQUARE(28) | SQUARE(20);
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 24, 31);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
     
     EXIT_UNITTEST();
 }
