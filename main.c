@@ -8,14 +8,7 @@
 /* #include <regex.h> */
 /* #include <ctype.h> */
 
-#define TOP 0x1e0000000U
-#define LEFT 0x2020202U
-#define RIGHT 0x101010100U
-#define BOTTOM 0x1eU
-#define TOP2 0x1e000000U
-#define LEFT2 0x20202020U
-#define RIGHT2 0x10101010U
-#define BOTTOM2 0x1e0U
+
 
 #define MAX_PATH 8
 #define MAX_MOVES 32
@@ -124,14 +117,23 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
 #define KINGS(state) ((state).black_kings | (state).white_kings)
 #define PAWNS(state) ((state).white | (state).black)
 #define FULLBOARD(state) (WHITE(state) | BLACK(state))
-#define UP_LEFT(square) ((square) + 4)
-#define UP_RIGHT(square) ((square) + 5)
-#define DOWN_LEFT(square) ((square) - 4)
-#define DOWN_RIGHT(square) ((square) - 3)
+#define ODDROW(square) ((square / 4) & 1)
+#define UP_LEFT(square) (ODDROW(square) ? (square) + 4 : (square) + 3)
+#define UP_RIGHT(square) (ODDROW(square) ? (square) + 5 : (square) + 4)
+#define DOWN_LEFT(square) (ODDROW(square) ? (square) - 5 : (square) - 4)
+#define DOWN_RIGHT(square) (ODDROW(square) ? (square) - 4 : (square) - 3)
 #define JUMP_UP_LEFT(square) (UP_LEFT(UP_LEFT(square)))
 #define JUMP_UP_RIGHT(square) (UP_RIGHT(UP_RIGHT(square)))
 #define JUMP_DOWN_LEFT(square) (DOWN_LEFT(DOWN_LEFT(square)))
 #define JUMP_DOWN_RIGHT(square) (DOWN_RIGHT(DOWN_RIGHT(square)))
+#define TOP(square) (MASK(square) & (MASK(28) | MASK(29) | MASK(30) | MASK(31)))
+#define LEFT(square) (MASK(square) & (MASK(0) | MASK(8) | MASK(16) | MASK(24)))
+#define RIGHT(square) (MASK(square) & (MASK(7) | MASK(15) | MASK(23) | MASK(31)))
+#define BOTTOM(square) (MASK(square) & (MASK(0) | MASK(1) | MASK(2) | MASK(3)))
+#define TOP2(square) 1
+#define LEFT2(square) 1
+#define RIGHT2(square) 1
+#define BOTTOM2(square) 1
 
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
@@ -293,19 +295,21 @@ int generate_moves(struct state_t* state, struct move_list_t* moves) {
     if (black_move(*state)) {
         for (square = 0; square < 32; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
-                if (!OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
-                    move_list_append_move(*moves, square+1, UP_LEFT(square)+1);
-                }
-                if (!OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
-                    move_list_append_move(*moves, square+1, UP_RIGHT(square)+1);
+                if (!TOP(square)) {
+                    if (!LEFT(square) && !OCCUPIED(FULLBOARD(*state), UP_LEFT(square))) {
+                        move_list_append_move(*moves, square+1, UP_LEFT(square)+1);
+                    }
+                    if (!RIGHT(square) && !OCCUPIED(FULLBOARD(*state), UP_RIGHT(square))) {
+                        move_list_append_move(*moves, square+1, UP_RIGHT(square)+1);
+                    }
                 }
 
-                if (OCCUPIED(state->black_kings, square)) {
+                if (OCCUPIED(state->black_kings, square) && !BOTTOM(square)) {
                     /* check king moves */
-                    if (!OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
+                    if (!LEFT(square) && !OCCUPIED(FULLBOARD(*state), DOWN_LEFT(square))) {
                         move_list_append_move(*moves, square+1, DOWN_LEFT(square)+1);
                     }
-                    if (!OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
+                    if (!RIGHT(square) && !OCCUPIED(FULLBOARD(*state), DOWN_RIGHT(square))) {
                         move_list_append_move(*moves, square+1, DOWN_RIGHT(square)+1);
                     }
                 }
@@ -348,11 +352,9 @@ int main(int argc, char **argv) {
     /* setup_start_position(state); */
     /* print_board(state); */
 
-    /* state.black = SQUARE(14) | SQUARE(15); */
-    state.black = 0;
+    state.black = SQUARE(8);
     state.black_kings = 0;    
     state.white = 0;
-    /* state.white_kings = SQUARE(19); */
     state.white_kings = 0;
     state.moves = 0;
 
