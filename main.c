@@ -404,7 +404,7 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
     return ret;
 }
 
-int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len) {
+int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
@@ -421,7 +421,7 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
 
-            if (!multicapture_white(nwhite, nblack, moves, path, len + 1)) {
+            if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
             }
         }
@@ -435,9 +435,38 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
         
-            if (!multicapture_white(nwhite, nblack, moves, path, len + 1)) {
+            if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
             }
+        }
+    }
+
+    if (is_king && !TOP(square) && !TOP2(square)) {
+        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nblack, UP_LEFT(square));
+            PLACE(nwhite, UP_LEFT(square));
+            CLEAR(nwhite, square);
+            PLACE(nwhite, JUMP_UP_LEFT(square));
+            ret = 1;
+            path[len] = JUMP_UP_LEFT(square);
+            if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
+                add_to_move_list(moves, path, len);
+            }
+        }
+        if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nblack, UP_RIGHT(square));
+            PLACE(nwhite, UP_RIGHT(square));
+            CLEAR(nwhite, square);
+            PLACE(nwhite, JUMP_UP_RIGHT(square));
+            ret = 1;
+            path[len] = JUMP_UP_RIGHT(square);
+            if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
+                add_to_move_list(moves, path, len);
+            }            
         }
     }
 
@@ -502,14 +531,14 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
 
-                        if (!multicapture_white((WHITE(*state) & ~MASK(square)) | MASK(JUMP_DOWN_LEFT(square)), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2)) {
+                        if (!multicapture_white((WHITE(*state) & ~MASK(square)) | MASK(JUMP_DOWN_LEFT(square)), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_LEFT(square);                        
                             move_list_append_capture(*moves, move);
                         }                    
                     }
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
-                        if (!multicapture_white((WHITE(*state) & ~MASK(square)) | MASK(JUMP_DOWN_RIGHT(square)), WHITE(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2)) {
+                        if (!multicapture_white((WHITE(*state) & ~MASK(square)) | MASK(JUMP_DOWN_RIGHT(square)), WHITE(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_RIGHT(square);                        
                             move_list_append_capture(*moves, move);
