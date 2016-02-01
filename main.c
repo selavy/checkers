@@ -48,7 +48,7 @@
 #define BOTTOM2(square) ((MASK(square) & (MASK(4) | MASK(5) | MASK(6) | MASK(7))) != 0)
 
 static const char * __unittest = 0;
-static int __unittest_number = 0;
+/* static int __unittest_number = 0; */
 #define ENTER_UNITTEST() do { __unittest = __func__; } while(0)
 #define EXIT_UNITTEST() do { printf("Passed %s.\n", __unittest); } while(0)
 #define __UNITTEST_FAIL(line) do {                                      \
@@ -77,7 +77,7 @@ static int __unittest_number = 0;
             __UNITTEST_FAIL(__LINE__);                      \
         }                                                   \
     } while(0)
-#define UT_NUM() do { printf("Beginning test #%d\n", __unittest_number++); } while(0)
+#define UT_NUM() /* do { printf("Beginning test #%d\n", __unittest_number++); } while(0) */
 
 /* --- types --- */
 typedef uint8_t boolean;
@@ -607,6 +607,14 @@ int generate_moves(struct state_t* state, struct move_list_t* moves) {
     return 0;
 }
 
+int get_moves(struct state_t* state, struct move_list_t* moves) {
+    generate_captures(state, moves);
+    if (moves->njumps == 0) {
+        generate_moves(state, moves);
+    }
+    return 0;
+}
+
 void unittest_move_list_compare() {
     struct move_list_t movelist;
     struct move_list_t rhs;
@@ -1002,10 +1010,10 @@ void unittest_generate_multicaptures() {
 
 int main(int argc, char **argv) {
     struct state_t state;
-    struct move_list_t movelist;
+    struct move_list_t moves;
     
     state_init(&state);
-    move_list_init(&movelist);
+    move_list_init(&moves);
 
     /* unit tests */
     unittest_move_list_compare();
@@ -1015,9 +1023,13 @@ int main(int argc, char **argv) {
     unittest_generate_multicaptures();
     
     /* -- to show starting position -- */
-    /* state_init(&state); */
-    /* setup_start_position(state); */
-    /* print_board(state); */
+    state_init(&state);
+    setup_start_position(state);
+    print_board(state);
+
+    get_moves(&state, &moves);
+
+    printf("Move list: "); print_move_list(moves); printf("\n");
 
     printf("Bye.\n");
     return 0;
