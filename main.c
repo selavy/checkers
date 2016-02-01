@@ -360,7 +360,7 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, UP_RIGHT(square));
-            PLACE(nblack, UP_RIGHT(square)); /* place piece so we won't jump it again */
+            PLACE(nblack, UP_RIGHT(square));
             CLEAR(nblack, square);
             PLACE(nblack, JUMP_UP_RIGHT(square));
             ret = 1;
@@ -449,6 +449,10 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     struct move_t move;
     move_init(&move);
     int path[10];
+    int i;
+    int maxlength;
+    int nmoves;
+    struct move_list_t tmp;
     
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
@@ -529,6 +533,25 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
             }
         }        
     }
+
+    nmoves = move_list_num_moves(*moves);
+    if (nmoves > 1) {
+        maxlength = 0;
+        for (i = 0; i < nmoves; ++i) {
+            if (moves->moves[i].pathlen > maxlength) {
+                maxlength = moves->moves[i].pathlen;
+            }
+        }
+        move_list_init(&tmp);
+        for (i = 0; i < nmoves; ++i) {
+            if (moves->moves[i].pathlen == maxlength) {
+                move_list_append_capture(tmp, moves->moves[i]);
+            }
+        }
+        move_list_init(moves);
+        memcpy(moves, &tmp, sizeof(*moves));
+    }
+    
     return 0;
 }
 
