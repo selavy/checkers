@@ -38,15 +38,17 @@
 #define JUMP_UP_RIGHT(square) ((square) + 9)
 #define JUMP_DOWN_LEFT(square) ((square) - 9)
 #define JUMP_DOWN_RIGHT(square) ((square) - 7)
-#define TOP(square) (MASK(square) & (MASK(28) | MASK(29) | MASK(30) | MASK(31)))
-#define LEFT(square) (MASK(square) & (MASK(0) | MASK(8) | MASK(16) | MASK(24)))
-#define RIGHT(square) (MASK(square) & (MASK(7) | MASK(15) | MASK(23) | MASK(31)))
-#define BOTTOM(square) (MASK(square) & (MASK(0) | MASK(1) | MASK(2) | MASK(3)))
-#define TOP2(square) (MASK(square) & (MASK(24) | MASK(25) | MASK(26) | MASK(27)))
-#define LEFT2(square) (MASK(square) & (MASK(4) | MASK(12) | MASK(20) | MASK(28)))
-#define RIGHT2(square) (MASK(square) & (MASK(3) | MASK(11) | MASK(19) | MASK(27)))
-#define BOTTOM2(square) (MASK(square) & (MASK(4) | MASK(5) | MASK(6) | MASK(7)))
+#define TOP(square) ((MASK(square) & (MASK(28) | MASK(29) | MASK(30) | MASK(31))) != 0)
+#define LEFT(square) ((MASK(square) & (MASK(0) | MASK(8) | MASK(16) | MASK(24))) != 0)
+#define RIGHT(square) ((MASK(square) & (MASK(7) | MASK(15) | MASK(23) | MASK(31))) != 0)
+#define BOTTOM(square) ((MASK(square) & (MASK(0) | MASK(1) | MASK(2) | MASK(3))) != 0)
+#define TOP2(square) ((MASK(square) & (MASK(24) | MASK(25) | MASK(26) | MASK(27))) != 0)
+#define LEFT2(square) ((MASK(square) & (MASK(4) | MASK(12) | MASK(20) | MASK(28))) != 0)
+#define RIGHT2(square) ((MASK(square) & (MASK(3) | MASK(11) | MASK(19) | MASK(27))) != 0)
+#define BOTTOM2(square) ((MASK(square) & (MASK(4) | MASK(5) | MASK(6) | MASK(7))) != 0)
+
 static const char * __unittest = 0;
+static int __unittest_number = 0;
 #define ENTER_UNITTEST() do { __unittest = __func__; } while(0)
 #define EXIT_UNITTEST() do { printf("Passed %s.\n", __unittest); } while(0)
 #define __UNITTEST_FAIL(line) do {                                      \
@@ -75,6 +77,7 @@ static const char * __unittest = 0;
             __UNITTEST_FAIL(__LINE__);                      \
         }                                                   \
     } while(0)
+#define UT_NUM() do { printf("Beginning test #%d\n", __unittest_number++); } while(0)
 
 /* --- types --- */
 typedef uint8_t boolean;
@@ -209,7 +212,7 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
         __print_move(file, &(list->moves[0]));
 
         for (i = 1; i < moves; ++i) {
-            printf(", ");
+            fprintf(file, ", ");
         __print_move(file, &(list->moves[i]));
         }
     }
@@ -259,7 +262,7 @@ void __print_board(FILE* file, struct state_t* state) {
     boolean skip = TRUE;
     int square = 28; /* upper left square, 0-indexed */
     for (r = ROWS - 1; r >= 0; --r) {
-        printf("\n    ---------------------------------\n    |");
+        fprintf(file, "\n    ---------------------------------\n    |");
         for (c = 0; c < COLUMNS; ++c) {
             if (skip) {
                 fprintf(file, "   |");
@@ -287,7 +290,7 @@ void __print_board(FILE* file, struct state_t* state) {
         skip ^= TRUE;
         square -= 8;
     }
-    printf("\n    ---------------------------------\n");       
+    fprintf(file, "\n    ---------------------------------\n");       
 }
 #define print_board(state) __print_board(stdout, &state);
 
@@ -309,67 +312,95 @@ void __setup_start_position(struct state_t* state) {
 void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     int i;
     struct move_t move;
-    move.src = path[0];
-    for (i = 1; i < len; ++i) { /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */
-        move.path[i - 1] = path[i];
+    boolean skip = FALSE;
+    const int nmoves = move_list_num_moves(*moves);
+
+    /* check that we aren't adding a capture that is shorter */
+    for (i = 0; i < nmoves; ++i) {
+        if (moves->moves[i].pathlen > len) {
+            skip = TRUE;
+            break;
+        }
     }
-    move.dst = path[len]; /* intentionally not len + 1 */
-    move.pathlen = len - 1;
-    move_list_append_capture(*moves, move);    
+
+    if (!skip) {
+        /* TODO: don't use move_list_append_capture, just do the appending manually */
+        move.src = path[0];
+        for (i = 1; i < len; ++i) { /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */
+            move.path[i - 1] = path[i];
+        }
+        move.dst = path[len]; /* intentionally not len + 1 */
+        move.pathlen = len - 1;
+        move_list_append_capture(*moves, move);    
+    }
 }
 
 int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
-    int i;
     int square = path[len - 1];
+
+    if (!TOP(square) && !TOP2(square)) {
+        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nwhite, UP_LEFT(square));
+            PLACE(nblack, UP_LEFT(square));
+            CLEAR(nblack, square);
+            PLACE(nblack, JUMP_UP_LEFT(square));
+            ret = 1;
+            path[len] = JUMP_UP_LEFT(square);
+
+            if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
+                add_to_move_list(moves, path, len);
+            }
+        }
+        if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(white, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nwhite, UP_RIGHT(square));
+            PLACE(nblack, UP_RIGHT(square)); /* place piece so we won't jump it again */
+            CLEAR(nblack, square);
+            PLACE(nblack, JUMP_UP_RIGHT(square));
+            ret = 1;
+            path[len] = JUMP_UP_RIGHT(square);
+        
+            if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
+                add_to_move_list(moves, path, len);
+            }
+        }
+    }
+
+    if (is_king && !BOTTOM(square) && !BOTTOM2(square)) {
+        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(white, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nwhite, DOWN_LEFT(square));
+            PLACE(nblack, DOWN_LEFT(square));
+            CLEAR(nblack, square);
+            PLACE(nblack, JUMP_DOWN_LEFT(square));
+            ret = 1;
+            path[len] = JUMP_DOWN_LEFT(square);
+            if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
+                add_to_move_list(moves, path, len);
+            }
+        }
+        if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(white, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nwhite, DOWN_RIGHT(square));
+            PLACE(nblack, DOWN_RIGHT(square));
+            CLEAR(nblack, square);
+            PLACE(nblack, JUMP_DOWN_RIGHT(square));
+            ret = 1;
+            path[len] = JUMP_DOWN_RIGHT(square);
+            if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
+                add_to_move_list(moves, path, len);
+            }            
+        }
+    }
     
-    if (OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
-        printf("Continued capture from %d to %d\n", square, JUMP_UP_LEFT(square));
-        nwhite = white;
-        nblack = black;
-        CLEAR(nwhite, UP_LEFT(square));
-        CLEAR(nblack, square);
-        PLACE(nblack, JUMP_UP_LEFT(square));
-        ret = 1;
-
-        path[len] = JUMP_UP_LEFT(square);
-
-        if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
-            printf("Would add move to move list now.\n");
-            printf("Printing move path: ");
-            for (i = 0; i < len + 1; ++i) {
-                printf("%d, ", path[i] + 1);
-            }
-            printf("\n");
-
-            add_to_move_list(moves, path, len);
-        }
-    }
-    if (OCCUPIED(white, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
-        printf("Continued capture from %d to %d\n", square, JUMP_UP_RIGHT(square));
-        nwhite = white;
-        nblack = black;
-        CLEAR(nwhite, UP_RIGHT(square));
-        CLEAR(nblack, square);
-        PLACE(nblack, JUMP_UP_RIGHT(square));
-        ret = 1;
-        
-        path[len] = JUMP_UP_RIGHT(square);
-        
-        if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
-            printf("Would add move to move list now.\n");
-            printf("Printing move path: ");
-            for (i = 0; i < len + 1; ++i) {
-                printf("%d, ", path[i] + 1);
-            }
-            printf("\n");
-
-            add_to_move_list(moves, path, len);
-        }
-    }
-
     return ret;
 }
 
@@ -377,48 +408,36 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
-    int i;
     int square = path[len - 1];
-    
-    if (OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
-        printf("Continued capture from %d to %d\n", square, JUMP_DOWN_LEFT(square));
-        nwhite = white;
-        nblack = black;
-        CLEAR(nblack, DOWN_LEFT(square));
-        CLEAR(nwhite, square);
-        PLACE(nwhite, JUMP_DOWN_LEFT(square));
-        ret = 1;
-        path[len] = JUMP_DOWN_LEFT(square);
 
-        if (!multicapture_white(nwhite, nblack, moves, path, len + 1)) {
-            printf("Would add move to move list now.\n");
-            printf("Printing move path: ");
-            for (i = 0; i < len + 1; ++i) {
-                printf("%d, ", path[i] + 1);
+    if (!BOTTOM(square) && !BOTTOM2(square)) {
+        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nblack, DOWN_LEFT(square));
+            PLACE(nwhite, DOWN_LEFT(square));
+            CLEAR(nwhite, square);
+            PLACE(nwhite, JUMP_DOWN_LEFT(square));
+            ret = 1;
+            path[len] = JUMP_DOWN_LEFT(square);
+
+            if (!multicapture_white(nwhite, nblack, moves, path, len + 1)) {
+                add_to_move_list(moves, path, len);
             }
-            printf("\n");
-            add_to_move_list(moves, path, len);
         }
-    }
-    if (OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
-        printf("Continued capture from %d to %d\n", square, JUMP_UP_RIGHT(square));
-        nwhite = white;
-        nblack = black;
-        CLEAR(nblack, DOWN_RIGHT(square));
-        CLEAR(nwhite, square);
-        PLACE(nwhite, JUMP_DOWN_RIGHT(square));
-        ret = 1;
-        path[len] = JUMP_DOWN_RIGHT(square);
+        if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
+            nwhite = white;
+            nblack = black;
+            CLEAR(nblack, DOWN_RIGHT(square));
+            PLACE(nwhite, DOWN_RIGHT(square));
+            CLEAR(nwhite, square);
+            PLACE(nwhite, JUMP_DOWN_RIGHT(square));
+            ret = 1;
+            path[len] = JUMP_DOWN_RIGHT(square);
         
-        if (!multicapture_white(nwhite, nblack, moves, path, len + 1)) {
-            printf("Would add move to move list now.\n");
-            printf("Printing move path: ");
-            for (i = 0; i < len + 1; ++i) {
-                printf("%d, ", path[i] + 1);
+            if (!multicapture_white(nwhite, nblack, moves, path, len + 1)) {
+                add_to_move_list(moves, path, len);
             }
-            printf("\n");
-
-            add_to_move_list(moves, path, len);
         }
     }
 
@@ -766,7 +785,8 @@ void unittest_generate_captures() {
     struct move_list_t expected;
     ENTER_UNITTEST();
 
-    /* black on 14 */    
+    /* black on 14 */
+    UT_NUM();
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -775,6 +795,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 14, white on 19 */
+    UT_NUM();    
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -785,6 +806,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 14, black on 10 */
+    UT_NUM();    
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -796,6 +818,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 14, white on 19 and 18*/
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -807,6 +830,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
     
     /* black on 14, white on 18, 19, 10, 11 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -818,6 +842,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black king on 14, white on 18, 19, 10, 11 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -831,6 +856,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 9, white on 13 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -841,6 +867,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 17, white on 21, 13 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -851,6 +878,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 24, white on 28, 20 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -861,6 +889,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 32, black on 28 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -872,6 +901,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 1, white on 5 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -882,6 +912,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);    
 
     /* black on 4, white on 7, 8 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -892,6 +923,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 29, black on 25, 26 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -903,6 +935,7 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 32, black on 28 */
+    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -925,12 +958,17 @@ void unittest_generate_multicaptures() {
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
-    /* state.black = SQUARE(1); */
-    /* state.white = SQUARE(5) | SQUARE(14) | SQUARE(22) | SQUARE(23) | SQUARE(13) | SQUARE(21); */
+    /* jump here */
+    state.black = 0;
+    state.black_kings = SQUARE(1);
+    state.white = SQUARE(5) | SQUARE(14) | SQUARE(22) | SQUARE(23) | SQUARE(13) | SQUARE(21);
+    state.white_kings = 0;
+    /* Move list: 1-10-17-26, 1-10-19-26, 1-10-19-28 */
 
-    state.moves = 1; /* make it white to move */
-    state.black = SQUARE(28) | SQUARE(19) | SQUARE(10) | SQUARE(11) | SQUARE(20) | SQUARE(12);
-    state.white = SQUARE(32);
+    /* state.moves = 1; */
+    /* state.black = SQUARE(28) | SQUARE(19) | SQUARE(10) | SQUARE(11) | SQUARE(20) | SQUARE(12); */
+    /* state.white = SQUARE(32); */
+    /* Move list: 32-23-14-5, 32-23-14-7, 32-23-16-7 */
     
     generate_captures(&state, &movelist);
     printf("\nMove list: "); print_move_list(movelist); printf("\n\n");
