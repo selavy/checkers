@@ -304,17 +304,25 @@ void __setup_start_position(struct state_t* state) {
      (state).black_kings = 0;                   \
      (state).moves = 0;
 
+void add_to_move_list(struct move_list_t* moves, int* path, int len) {
+    int i;
+    struct move_t move;
+    move.src = path[0];
+    for (i = 1; i < len; ++i) { /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */
+        move.path[i - 1] = path[i];
+    }
+    move.dst = path[len]; /* intentionally not len + 1 */
+    move.pathlen = len - 1;
+    move_list_append_capture(*moves, move);    
+}
+
 /* rename to multicapture_black? */
-int petercapture(int32_t white, int32_t black, struct move_list_t* moves, int square, int* path, int len) {
+int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len) {
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
     int i;
-    struct move_t move;
-    int npath[10];
-    memset(&(npath[0]), 0, sizeof(npath[0]) * 10);
-    memcpy(&(npath[0]), path, sizeof(*path) * len);
-
+    int square = path[len - 1];
     
     if (OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
         printf("Continued capture from %d to %d\n", square, JUMP_UP_LEFT(square));
@@ -327,7 +335,7 @@ int petercapture(int32_t white, int32_t black, struct move_list_t* moves, int sq
 
         path[len] = JUMP_UP_LEFT(square);
 
-        if (!petercapture(nwhite, nblack, moves, JUMP_UP_LEFT(square), path, len + 1)) {
+        if (!multicapture_black(nwhite, nblack, moves, path, len + 1)) {
             printf("Would add move to move list now.\n");
             printf("Printing move path: ");
             for (i = 0; i < len + 1; ++i) {
@@ -335,14 +343,7 @@ int petercapture(int32_t white, int32_t black, struct move_list_t* moves, int sq
             }
             printf("\n");
 
-            /* add move to move list */
-            move.src = path[0];
-            for (i = 1; i < len; ++i) { /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */
-                move.path[i - 1] = path[i];
-            }
-            move.dst = path[len]; /* intentionally not len + 1 */
-            move.pathlen = len - 1;
-            move_list_append_capture(*moves, move);
+            add_to_move_list(moves, path, len);
         }
     }
     if (OCCUPIED(white, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
@@ -356,7 +357,7 @@ int petercapture(int32_t white, int32_t black, struct move_list_t* moves, int sq
         
         path[len] = JUMP_UP_RIGHT(square);
         
-        if (!petercapture(nwhite, nblack, moves, JUMP_UP_RIGHT(square), path, len + 1)) {
+        if (!multicapture_black(nwhite, nblack, moves, path, len + 1)) {
             printf("Would add move to move list now.\n");
             printf("Printing move path: ");
             for (i = 0; i < len + 1; ++i) {
@@ -364,14 +365,7 @@ int petercapture(int32_t white, int32_t black, struct move_list_t* moves, int sq
             }
             printf("\n");
 
-            /* add move to move list */
-            move.src = path[0];
-            for (i = 1; i < len; ++i) { /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */
-                move.path[i - 1] = path[i];
-            }
-            move.dst = path[len]; /* intentionally not len + 1 */
-            move.pathlen = len - 1;
-            move_list_append_capture(*moves, move);            
+            add_to_move_list(moves, path, len);
         }
     }
 
@@ -390,7 +384,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                 if (OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                     path[0] = square;
                     path[1] = JUMP_UP_LEFT(square);
-                    if (!petercapture(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, JUMP_UP_LEFT(square), &(path[0]), 2)) {
+                    if (!multicapture_black(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, &(path[0]), 2)) {
                         move.src = square;
                         move.dst = JUMP_UP_LEFT(square);                        
                         move_list_append_capture(*moves, move);
@@ -399,7 +393,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                 if (OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                     path[0] = square;
                     path[1] = JUMP_UP_RIGHT(square);
-                    if (!petercapture(WHITE(*state) & ~MASK(UP_RIGHT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, JUMP_UP_RIGHT(square), &(path[0]), 2)) {
+                    if (!multicapture_black(WHITE(*state) & ~MASK(UP_RIGHT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, &(path[0]), 2)) {
                         move.src = square;
                         move.dst = JUMP_UP_RIGHT(square);                        
                         move_list_append_capture(*moves, move);
