@@ -19,7 +19,7 @@
 #define SQUARE(square) MASK(SQR(square))
 #define PLACE(pieces, square) do { ((pieces) |= MASK(square)); } while(0)
 #define CLEAR(pieces, square) do { ((pieces) &= ~MASK(square)); } while(0)
-#define OCCUPIED(pieces, square) (pieces & MASK(square))
+#define OCCUPIED(pieces, square) ((pieces) & MASK(square))
 #define MOVE(pieces, from, to) do { PLACE(pieces, to); CLEAR(pieces, from); } while(0)
 #define ROW(square) (((square) / 4) - 1)
 #define WHITE(state) ((state).white | (state).white_kings)
@@ -308,10 +308,65 @@ void __setup_start_position(struct state_t* state) {
      (state).black_kings = 0;                   \
      (state).moves = 0;
 
+int petercapture(int32_t white, int32_t black, struct move_list_t* moves, int square, int* path, int len) {
+    int32_t nwhite;
+    int32_t nblack;
+    int ret = 0;
+    int npath[10];
+    memset(&(npath[0]), 0, sizeof(npath[0]) * 10);
+    memcpy(&(npath[0]), path, sizeof(*path) * len);
+    int i;
+    
+    if (OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+        printf("Continued capture from %d to %d\n", square, JUMP_UP_LEFT(square));
+        nwhite = white;
+        nblack = black;
+        CLEAR(nwhite, UP_LEFT(square));
+        CLEAR(nblack, square);
+        PLACE(nblack, JUMP_UP_LEFT(square));
+        ret = 1;
+
+        path[len] = JUMP_UP_LEFT(square);
+
+        if (!petercapture(nwhite, nblack, moves, JUMP_UP_LEFT(square), path, len + 1)) {
+            printf("Would add move to move list now.\n");
+            printf("Printing move path: ");
+            for (i = 0; i < len + 1; ++i) {
+                printf("%d, ", path[i] + 1);
+            }
+            printf("\n");
+        }
+    }
+    if (OCCUPIED(white, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
+        printf("Continued capture from %d to %d\n", square, JUMP_UP_RIGHT(square));
+        nwhite = white;
+        nblack = black;
+        CLEAR(nwhite, UP_RIGHT(square));
+        CLEAR(nblack, square);
+        PLACE(nblack, JUMP_UP_RIGHT(square));
+        ret = 1;
+        
+        path[len] = JUMP_UP_RIGHT(square);
+        
+        if (!petercapture(nwhite, nblack, moves, JUMP_UP_RIGHT(square), path, len + 1)) {
+            printf("Would add move to move list now.\n");
+            printf("Printing move path: ");
+            for (i = 0; i < len + 1; ++i) {
+                printf("%d, ", path[i] + 1);
+            }
+            printf("\n");            
+        }
+    }
+
+    return ret;
+}
+
 int generate_captures(struct state_t* state, struct move_list_t* moves) {
     square_t square;
     struct move_t move;
     move_init(&move);
+    int path[10];
+    
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
@@ -319,11 +374,19 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     move.src = square;
                     move.dst = JUMP_UP_LEFT(square);
                     move_list_append_capture(*moves, move);
+
+                    path[0] = square;
+                    path[1] = JUMP_UP_LEFT(square);
+                    petercapture(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, JUMP_UP_LEFT(square), &(path[0]), 2);
                 }
                 if (OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                     move.src = square;
                     move.dst = JUMP_UP_RIGHT(square);
-                    move_list_append_capture(*moves, move);                    
+                    move_list_append_capture(*moves, move);
+
+                    path[0] = square;
+                    path[1] = JUMP_UP_RIGHT(square);
+                    petercapture(WHITE(*state) & ~MASK(UP_RIGHT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, JUMP_UP_RIGHT(square), &(path[0]), 2);
                 }
 
                 if (OCCUPIED(state->black_kings, square)) {
@@ -683,6 +746,24 @@ void unittest_generate_captures() {
     EXIT_UNITTEST();
 }
 
+void unittest_generate_multicaptures() {
+    struct state_t state;
+    struct move_list_t movelist;
+    struct move_list_t expected;
+    ENTER_UNITTEST();
+
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.black = SQUARE(1);
+    state.white = SQUARE(5) | SQUARE(14) | SQUARE(22) | SQUARE(23) | SQUARE(13) | SQUARE(21);
+    
+    generate_captures(&state, &movelist);
+    /* UNITTEST_ASSERT_MOVELIST(movelist, expected); */
+
+    EXIT_UNITTEST();
+}
+
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t movelist;
@@ -695,6 +776,7 @@ int main(int argc, char **argv) {
     unittest_move_list_sort();
     unittest_generate_moves();
     unittest_generate_captures();
+    unittest_generate_multicaptures();
     
     /* -- to show starting position -- */
     /* state_init(&state); */
