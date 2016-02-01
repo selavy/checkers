@@ -156,18 +156,14 @@ void move_list_sort(struct move_list_t* list) {
     }
 }
 
-/* TODO: add is_capture parameter */
+/* TODO: print captures with 'x' between intead of '-' */
 void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
     int i;
-    /* if (is_capture) { */
     fprintf(file, "%d-", move->src + 1);
     for (i = 0; i < move->pathlen; ++i) {
         fprintf(file, "%d-", move->path[i] + 1);
     }
     fprintf(file, "%d", move->dst + 1);
-    /* } else { */
-    /*     fprintf(file, "%d-%d", move->src, move->dst); */
-    /* } */
 }
 #define print_move(move, is_capture) __print_move(stdout, &(move))
 
