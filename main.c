@@ -33,8 +33,8 @@
 #define WHITE(state) ((state).white | (state).white_kings)
 #define BLACK(state) ((state).black | (state).black_kings)
 #define KINGS(state) ((state).black_kings | (state).white_kings)
-#define BLACK_KING(state, square) (OCCUPIED((state).black_kings, square))
-#define WHITE_KING(state, square) (OCCUPIED((state).white_kings, square))
+#define BLACK_KING(state, square) ((OCCUPIED((state).black_kings, square)) != 0)
+#define WHITE_KING(state, square) ((OCCUPIED((state).white_kings, square)) != 0)
 #define PAWNS(state) ((state).white | (state).black)
 #define FULLBOARD(state) (WHITE(state) | BLACK(state))
 #define ODDROW(square) ((square / 4) & 1)
@@ -279,7 +279,6 @@ void __print_board(FILE* file, struct state_t* state) {
             if (skip) {
                 fprintf(file, "   |");
             } else {
-                /* fprintf(file, " %d |", square); */
                 if (OCCUPIED(state->black, square)) {
                     fprintf(file, " b |");
                 } else if (OCCUPIED(state->black_kings, square)) {
@@ -422,8 +421,12 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
     int ret = 0;
     int square = path[len - 1];
 
+    printf("Entering multicapture_white, is_king = %s\n", (is_king ? "true":"false"));
+
     if (!BOTTOM(square) && !BOTTOM2(square)) {
+        printf("Checking jump down left, %d -> %d\n", square+1, JUMP_DOWN_LEFT(square)+1);
         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+            printf("Adding jump down left, %d -> %d\n", square+1, JUMP_DOWN_LEFT(square)+1);
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_LEFT(square));
@@ -436,7 +439,9 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
                 add_to_move_list(moves, path, len);
             }
         }
+        printf("Checking jump down right, %d -> %d\n", square+1, JUMP_DOWN_RIGHT(square)+1);
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
+            printf("Adding jump down right, %d -> %d\n", square+1, JUMP_DOWN_RIGHT(square)+1);
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_RIGHT(square));
@@ -451,8 +456,12 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
         }
     }
 
+    printf("checking if is king at %d\n", square+1);
     if (is_king && !TOP(square) && !TOP2(square)) {
+        printf("is king!\n");
+        printf("Checking jump up left, %d -> %d\n", square+1, JUMP_UP_LEFT(square)+1);
         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+            printf("Adding jump up left, %d -> %d\n", square+1, JUMP_UP_LEFT(square)+1);            
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_LEFT(square));
@@ -465,7 +474,9 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
                 add_to_move_list(moves, path, len);
             }
         }
+        printf("Checking jump up right, %d -> %d\n", square+1, JUMP_UP_RIGHT(square)+1);
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
+            printf("Adding jump up right, %d -> %d\n", square+1, JUMP_UP_RIGHT(square)+1);            
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_RIGHT(square));
@@ -492,6 +503,10 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     int maxlength;
     int nmoves;
     struct move_list_t tmp;
+
+    printf("GENERATE CAPTURES\n");
+    print_board(*state);
+    printf("\n");
 
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
@@ -549,6 +564,9 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
+
+                        printf("Checking jump down left in generate_captures, is white king = %s\n", (WHITE_KING(*state, square) ? "true":"false"));
+                        
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_LEFT(square);                        
@@ -558,6 +576,9 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_RIGHT(square);
+
+                        printf("Checking jump down right in generate_captures, is white king = %s\n", (WHITE_KING(*state, square) ? "true":"false"));
+                        
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), BLACK(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_RIGHT(square);                        
@@ -1054,6 +1075,7 @@ void unittest_generate_multicaptures() {
     struct move_t move;
     ENTER_UNITTEST();
 
+    #if 0
     /*
     ---------------------------------
     |   |29 |   |30 |   |31 |   |32 |
@@ -1483,6 +1505,8 @@ void unittest_generate_multicaptures() {
                   32-23-16-7-14-21-30-23-14-5, 32-23-16-7-14-23-30-21-14-5 */
 
 
+
+    #endif
     /*
     ---------------------------------
     |   |29 |   |30 |   |31 |   | W |
@@ -1504,6 +1528,7 @@ void unittest_generate_multicaptures() {
     */    
     state_init(&state);
     state.moves = 1;
+    move_init(&move);
     move_list_init(&movelist);
     move_list_init(&expected);
     state.black = SQUARE(10) | SQUARE(11) | SQUARE(26) | SQUARE(28) | SQUARE(12) | SQUARE(18) | SQUARE(19) | SQUARE(20) | SQUARE(27);
@@ -1512,7 +1537,11 @@ void unittest_generate_multicaptures() {
     state.white_kings = SQUARE(32);
     print_board(state);
     generate_captures(&state, &movelist);
-    print_move_list(movelist);
+    /* print_move_list(movelist); printf("\n"); */
+
+    /* Move list: 32-23-14-7-16-23-30-21-14-5, 32-23-14-21-30-23-16-7-14-5,
+                  32-23-16-7-14-21-30-23-14-5, 32-23-16-7-14-23-30-21-14-5,
+                  32-23-30-21-14-7-16-23-14-5, 32-23-30-21-14-23-16-7-14-5 */
 
     EXIT_UNITTEST();
 }
@@ -1525,13 +1554,16 @@ int main(int argc, char **argv) {
     move_list_init(&moves);
 
     /* unit tests */
+    #if 0
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
     unittest_generate_captures();
+    #endif
     unittest_generate_multicaptures();
     
     /* -- to show starting position -- */
+    #if 0
     state_init(&state);
     setup_start_position(state);
     print_board(state);
@@ -1541,5 +1573,6 @@ int main(int argc, char **argv) {
     printf("Move list: "); print_move_list(moves); printf("\n");
 
     printf("Bye.\n");
+    #endif
     return 0;
 }
