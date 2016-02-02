@@ -492,7 +492,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     int maxlength;
     int nmoves;
     struct move_list_t tmp;
-    
+
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
@@ -544,11 +544,11 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     } else {
         for (square = 0; square < 32; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
+                printf("%d is occupied by white\n", square + 1);
                 if (!BOTTOM(square) && !BOTTOM2(square)) {
                     if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
-
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_LEFT(square);                        
@@ -556,7 +556,9 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                         }                    
                     }
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
-                        if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), WHITE(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
+                        path[0] = square;
+                        path[1] = JUMP_DOWN_RIGHT(square);
+                        if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), BLACK(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_RIGHT(square);                        
                             move_list_append_capture(*moves, move);
@@ -566,14 +568,27 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                 if (WHITE_KING(*state, square)) {
                     if (!TOP(square) && !TOP2(square)) {
                         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
-                            move.src = square;
-                            move.dst = JUMP_UP_LEFT(square);
-                            move_list_append_capture(*moves, move);
+                            printf("checking up left from %d to %d\n", square+1, JUMP_UP_LEFT(square)+1);
+                            path[0] = square;
+                            path[1] = JUMP_UP_LEFT(square);
+                            if (!multicapture_white((WHITE(*state) | MASK(JUMP_UP_LEFT(square))), BLACK(*state) & ~MASK(UP_LEFT(square)), moves, &(path[0]), 2, TRUE)) {
+                                printf("Trying to add path1 %d to %d\n", square + 1, JUMP_UP_LEFT(square)+1);
+                                move.src = square;
+                                move.dst = JUMP_UP_LEFT(square);
+                                move_list_append_capture(*moves, move);
+                            }
                         }
                         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
-                            move.src = square;
-                            move.dst = JUMP_UP_RIGHT(square);
-                            move_list_append_capture(*moves, move);
+                            printf("checking up right from %d to %d\n", square+1, JUMP_UP_RIGHT(square)+1);
+                            path[0] = square;
+                            path[1] = JUMP_UP_RIGHT(square);
+                            if (!multicapture_white((WHITE(*state) | MASK(JUMP_UP_RIGHT(square))), BLACK(*state) & ~MASK(UP_RIGHT(square)), moves, &(path[0]), 2, TRUE)) {
+                                printf("Trying to add path2 from %d to %d\n", square+1, JUMP_UP_RIGHT(square)+1);                                
+                                move.src = square;
+                                move.dst = JUMP_UP_RIGHT(square);
+                                move_list_append_capture(*moves, move);
+                            }
+
                         }
                     }
                 }
@@ -1278,7 +1293,44 @@ void unittest_generate_multicaptures() {
     move_list_append_capture(expected, move);
     generate_captures(&state, &movelist);        
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
-    /* Move list: 28-19-10 */    
+    /* Move list: 28-19-10 */
+
+        /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    |25 |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   |21 |   |22 |   | B |   |24 |
+    ---------------------------------
+    |17 |   |18 |   |19 |   |20 |   |
+    ---------------------------------
+    |   |13 |   | b |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | W |   |11 |   |12 |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.moves = 1;
+    state.black = SQUARE(14);
+    state.black_kings = SQUARE(23);        
+    state.white = 0;
+    state.white_kings = SQUARE(10);
+    move_init(&move);
+    move.src = SQR(10);
+    move.path[0] = SQR(19);
+    move.dst = SQR(28);
+    move.pathlen = 1;
+    move_list_append_capture(expected, move);
+    generate_captures(&state, &movelist);        
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+    /* Move list: 10-19-28 */    
 
     /*
     ---------------------------------
@@ -1425,9 +1477,42 @@ void unittest_generate_multicaptures() {
     /* move_list_append_capture(expected, move); */
     generate_captures(&state, &movelist);        
     /* UNITTEST_ASSERT_MOVELIST(movelist, expected); */
-    print_move_list(movelist);
-    /* Move list: 25-18-11-20 */            
+    /* print_move_list(movelist); */
+    /* Move list: 32-23-30-21-14-23-16-7-14-5, 32-23-30-21-14-7-16-23-14-5,
+                  32-23-14-21-30-23-16-7-14-5, 32-23-14-7-16-23-30-21-14-5,
+                  32-23-16-7-14-21-30-23-14-5, 32-23-16-7-14-23-30-21-14-5 */
 
+
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   | W |
+    ---------------------------------
+    |25 |   | b |   | b |   | b |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   | b |   | b |   | b |   |
+    ---------------------------------
+    |   |13 |   |14 |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | b |   | b |   | b |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */    
+    state_init(&state);
+    state.moves = 1;
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.black = SQUARE(10) | SQUARE(11) | SQUARE(26) | SQUARE(28) | SQUARE(12) | SQUARE(18) | SQUARE(19) | SQUARE(20) | SQUARE(27);
+    state.black_kings = 0;
+    state.white = 0;
+    state.white_kings = SQUARE(32);
+    print_board(state);
+    generate_captures(&state, &movelist);
+    print_move_list(movelist);
 
     EXIT_UNITTEST();
 }
