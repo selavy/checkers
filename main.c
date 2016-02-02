@@ -77,7 +77,6 @@ static const char * __unittest = 0;
             __UNITTEST_FAIL(__LINE__);                      \
         }                                                   \
     } while(0)
-#define UT_NUM() /* do { printf("Beginning test #%d\n", __unittest_number++); } while(0) */
 
 /* --- types --- */
 typedef uint8_t boolean;
@@ -109,8 +108,7 @@ struct move_t {
  * -1 => lhs < rhs
  */
 int move_compare(struct move_t* lhs, struct move_t* rhs) {
-    int ret = 0;
-    
+    int ret;
     if (lhs->src != rhs->src) {
         ret = lhs->src - rhs->src;
     } else if (lhs->dst != rhs->dst) {
@@ -118,7 +116,7 @@ int move_compare(struct move_t* lhs, struct move_t* rhs) {
     } else if (lhs->pathlen != rhs->pathlen) {
         ret = lhs->pathlen - rhs->pathlen;
     } else {
-        ret = memcmp(&(lhs->path[0]), &(rhs->path[0]), sizeof(lhs->path[0]) * MAX_PATH);
+        ret = memcmp(&(lhs->path[0]), &(rhs->path[0]), sizeof(lhs->path[0]) * lhs->pathlen);
     }
     return ret;
 }
@@ -130,22 +128,36 @@ struct move_list_t {
 };
 #define move_list_num_moves(list) ((list).njumps + (list).nmoves)
 
+/* TODO: print captures with 'x' between intead of '-' */
+void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
+    int i;
+    fprintf(file, "%d-", move->src + 1);
+    for (i = 0; i < move->pathlen; ++i) {
+        fprintf(file, "%d-", move->path[i] + 1);
+    }
+    fprintf(file, "%d", move->dst + 1);
+}
+
 /* move_list_compare: compare 2 move_lists for strict equality
  * 0  => equal
  * 1  => lhs > rhs
  * -1 => lhs < rhs
  */
 int move_list_compare(struct move_list_t* lhs, struct move_list_t* rhs) {
-    int ret;
-    
-    if (lhs->njumps != rhs->njumps) {
-        ret = lhs->njumps - rhs->njumps;
-    } else if (lhs->nmoves != rhs->nmoves) {
-        ret = lhs->nmoves - rhs->nmoves;
-    } else if (move_list_num_moves(*lhs) != move_list_num_moves(*rhs)) {
-        ret = move_list_num_moves(*lhs) - move_list_num_moves(*rhs);
+    int ret = 0;
+    int i;
+    const int lhs_moves = move_list_num_moves(*lhs);
+    const int rhs_moves = move_list_num_moves(*rhs);
+
+    if (lhs_moves != rhs_moves) {
+        ret = lhs_moves - rhs_moves;
     } else {
-        ret = memcmp(&(lhs->moves[0]), &(rhs->moves[0]), sizeof(lhs->moves[0]) * MAX_MOVES);
+        for (i = 0; i < lhs_moves; ++i) {
+            ret = move_compare(&(lhs->moves[i]), &(rhs->moves[i]));
+            if (ret != 0) {
+                break;
+            }
+        }
     }
     return ret;
 }
@@ -161,16 +173,6 @@ void move_list_sort(struct move_list_t* list) {
     }
 }
 
-/* TODO: print captures with 'x' between intead of '-' */
-void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
-    int i;
-    fprintf(file, "%d-", move->src + 1);
-    for (i = 0; i < move->pathlen; ++i) {
-        fprintf(file, "%d-", move->path[i] + 1);
-    }
-    fprintf(file, "%d", move->dst + 1);
-}
-#define print_move(move, is_capture) __print_move(stdout, &(move))
 
 int move_list_init(struct move_list_t* list) {
     list->njumps = 0;
@@ -215,6 +217,8 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
             fprintf(file, ", ");
         __print_move(file, &(list->moves[i]));
         }
+
+        fprintf(file, ", moves: %d, jumps: %d", list->nmoves, list->njumps);
     }
 }
 #define print_move_list(list) __print_move_list(stdout, &(list));
@@ -846,7 +850,6 @@ void unittest_generate_captures() {
     ENTER_UNITTEST();
 
     /* black on 14 */
-    UT_NUM();
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -855,7 +858,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 14, white on 19 */
-    UT_NUM();    
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -866,7 +868,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 14, black on 10 */
-    UT_NUM();    
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -878,7 +879,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 14, white on 19 and 18*/
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -890,7 +890,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
     
     /* black on 14, white on 18, 19, 10, 11 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -902,7 +901,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black king on 14, white on 18, 19, 10, 11 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -916,7 +914,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 9, white on 13 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -927,7 +924,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 17, white on 21, 13 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -938,7 +934,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 24, white on 28, 20 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -949,7 +944,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 32, black on 28 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -961,7 +955,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* black on 1, white on 5 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -972,7 +965,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);    
 
     /* black on 4, white on 7, 8 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -983,7 +975,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 29, black on 25, 26 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -995,7 +986,6 @@ void unittest_generate_captures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /* white on 32, black on 28 */
-    UT_NUM();        
     state_init(&state);
     move_list_init(&movelist);
     move_list_init(&expected);
@@ -1013,26 +1003,114 @@ void unittest_generate_multicaptures() {
     struct state_t state;
     struct move_list_t movelist;
     struct move_list_t expected;
+    struct move_t move;
     ENTER_UNITTEST();
 
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    |25 |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   |18 |   |19 |   |20 |   |
+    ---------------------------------
+    |   |13 |   |14 |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   |10 |   |11 |   |12 |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    |25 |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   | w |   | w |   | w |   |24 |
+    ---------------------------------
+    |17 |   |18 |   |19 |   |20 |   |
+    ---------------------------------
+    |   | w |   | w |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   |10 |   |11 |   |12 |   |
+    ---------------------------------
+    |   | w |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | b |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
     state_init(&state);
     move_list_init(&movelist);
-    move_list_init(&expected);
-    /* jump here */
-    state.black = 0;
-    state.black_kings = SQUARE(1);
+    move_list_init(&expected);    
+    state.black = SQUARE(1);
+    state.black_kings = 0;    
     state.white = SQUARE(5) | SQUARE(14) | SQUARE(22) | SQUARE(23) | SQUARE(13) | SQUARE(21);
     state.white_kings = 0;
+    move_init(&move);
+    move.src = SQR(1);
+    move.path[0] = SQR(10);
+    move.path[1] = SQR(17);
+    move.dst = SQR(26);
+    move.pathlen = 2;
+    move_list_append_capture(expected, move);
+    move.path[0] = SQR(10);
+    move.path[1] = SQR(19);
+    move.pathlen = 2;
+    move_list_append_capture(expected, move);
+    move.dst = SQR(28);
+    move_list_append_capture(expected, move);
+    generate_captures(&state, &movelist);    
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
     /* Move list: 1-10-17-26, 1-10-19-26, 1-10-19-28 */
-
-    /* state.moves = 1; */
-    /* state.black = SQUARE(28) | SQUARE(19) | SQUARE(10) | SQUARE(11) | SQUARE(20) | SQUARE(12); */
-    /* state.white = SQUARE(32); */
-    /* Move list: 32-23-14-5, 32-23-14-7, 32-23-16-7 */
     
-    generate_captures(&state, &movelist);
-    printf("\nMove list: "); print_move_list(movelist); printf("\n\n");
-
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   | w |
+    ---------------------------------
+    |25 |   |26 |   |27 |   | b |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   |18 |   | b |   | b |   |
+    ---------------------------------
+    |   |13 |   |14 |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | b |   | b |   | b |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);        
+    state.moves = 1;
+    state.black = SQUARE(28) | SQUARE(19) | SQUARE(10) | SQUARE(11) | SQUARE(20) | SQUARE(12);
+    state.black_kings = 0;
+    state.white = SQUARE(32);
+    state.white_kings = 0;
+    move_init(&move);
+    move.src = SQR(32);
+    move.path[0] = SQR(23);
+    move.path[1] = SQR(14);
+    move.pathlen = 2;
+    move.dst = SQR(5);
+    move_list_append_capture(expected, move);
+    move.path[1] = SQR(14);
+    move.dst = SQR(7);
+    move_list_append_capture(expected, move);
+    move.path[1] = SQR(16);
+    move_list_append_capture(expected, move);
+    generate_captures(&state, &movelist);        
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);    
+    /* Move list: 32-23-14-5, 32-23-14-7, 32-23-16-7 */
 
     EXIT_UNITTEST();
 }
