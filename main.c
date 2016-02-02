@@ -514,16 +514,20 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                             path[0] = square;
                             path[1] = JUMP_DOWN_LEFT(square);
-                            if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_LEFT(square)), (BLACK(*state) | MASK(JUMP_DOWN_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
+                            if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_LEFT(square)), (BLACK(*state) | MASK(JUMP_DOWN_LEFT(square))), moves, &(path[0]), 2, TRUE)) {
                                 move.src = square;
                                 move.dst = JUMP_DOWN_LEFT(square);                        
                                 move_list_append_capture(*moves, move);
                             }
                         }
                         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
-                            move.src = square;
-                            move.dst = JUMP_DOWN_RIGHT(square);
-                            move_list_append_capture(*moves, move);                        
+                            path[0] = square;
+                            path[1] = JUMP_DOWN_RIGHT(square);
+                            if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_RIGHT(square)), (BLACK(*state) | MASK(JUMP_DOWN_RIGHT(square))), moves, &(path[0]), 2, TRUE)) {
+                                move.src = square;
+                                move.dst = JUMP_DOWN_RIGHT(square);                        
+                                move_list_append_capture(*moves, move);
+                            }                            
                         }
                     }
                 }
@@ -1267,6 +1271,42 @@ void unittest_generate_multicaptures() {
     generate_captures(&state, &movelist);        
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
     /* Move list: 28-19-10 */    
+
+        /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    | B |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   | W |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   |18 |   |19 |   |20 |   |
+    ---------------------------------
+    |   |13 |   | w |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   |10 |   |11 |   |12 |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.black = 0;
+    state.black_kings = SQUARE(25);        
+    state.white = SQUARE(14);
+    state.white_kings = SQUARE(21);
+    move_init(&move);
+    move.src = SQR(25);
+    move.path[0] = SQR(18);
+    move.dst = SQR(11);
+    move.pathlen = 1;
+    move_list_append_capture(expected, move);
+    generate_captures(&state, &movelist);        
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+    /* Move list: 25-18-11 */    
 
 
     EXIT_UNITTEST();
