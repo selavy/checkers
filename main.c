@@ -1,3 +1,11 @@
+/* 
+ * TODO: do you have to capture with the most number of jumps? Not clear from itsyourturn.com.
+ * Definitely do have to in international checkers, but not sure for American checkers.
+ * 
+ * Right now I am enforcing that, but revisit this later, shouldn't be too hard to change, just will have
+ * to update move_list_append_capture().
+ */
+
 /* #define _SVID_SOURCE */
 /* #define _POSIX_C_SOURCE 200809L */
 #include <stdio.h>
@@ -1380,7 +1388,45 @@ void unittest_generate_multicaptures() {
     move_list_append_capture(expected, move);
     generate_captures(&state, &movelist);        
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
-    /* Move list: 25-18-11-20 */        
+    /* Move list: 25-18-11-20 */
+
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   | B |
+    ---------------------------------
+    |25 |   | w |   | W |   | w |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   | W |   | W |   | W |   |
+    ---------------------------------
+    |   |13 |   |14 |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | w |   | w |   | W |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.black = 0;
+    state.black_kings = SQUARE(32);        
+    state.white = SQUARE(10) | SQUARE(11) | SQUARE(26) | SQUARE(28);
+    state.white_kings = SQUARE(12) | SQUARE(18) | SQUARE(19) | SQUARE(20) | SQUARE(27);
+    /* move_init(&move); */
+    /* move.src = SQR(25); */
+    /* move.path[0] = SQR(18); */
+    /* move.path[1] = SQR(11); */
+    /* move.dst = SQR(20); */
+    /* move.pathlen = 2; */
+    /* move_list_append_capture(expected, move); */
+    generate_captures(&state, &movelist);        
+    /* UNITTEST_ASSERT_MOVELIST(movelist, expected); */
+    print_move_list(movelist);
+    /* Move list: 25-18-11-20 */            
 
 
     EXIT_UNITTEST();
