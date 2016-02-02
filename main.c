@@ -1112,6 +1112,90 @@ void unittest_generate_multicaptures() {
     UNITTEST_ASSERT_MOVELIST(movelist, expected);    
     /* Move list: 32-23-14-5, 32-23-14-7, 32-23-16-7 */
 
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    |25 |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   | W |   | W |   |20 |   |
+    ---------------------------------
+    |   |13 |   | B |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | w |   | w |   |12 |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);        
+    state.black = 0;
+    state.black_kings = SQUARE(14);
+    state.white = SQUARE(10) | SQUARE(11);
+    state.white_kings = SQUARE(18) | SQUARE(19);
+    move_init(&move);
+    move.pathlen = 0;    
+    move.src = SQR(14);
+    move.dst = SQR(5);
+    move_list_append_capture(expected, move);
+    move.dst = SQR(7);
+    move_list_append_capture(expected, move);
+    move.dst = SQR(21);
+    move_list_append_capture(expected, move);    
+    move.dst = SQR(23);
+    move_list_append_capture(expected, move);    
+    generate_captures(&state, &movelist);        
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+    /* Move list: 14-5, 14-7, 14-21, 14-23 */
+
+        /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    |25 |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   | B |   | B |   |20 |   |
+    ---------------------------------
+    |   |13 |   | W |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | b |   | b |   |12 |   |
+    ---------------------------------
+    |   | 5 |   | 6 |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.moves = 1;
+    state.white = 0;
+    state.white_kings = SQUARE(14);
+    state.black = SQUARE(10) | SQUARE(11);
+    state.black_kings = SQUARE(18) | SQUARE(19);
+    move_init(&move);
+    move.pathlen = 0;    
+    move.src = SQR(14);
+    move.dst = SQR(5);
+    move_list_append_capture(expected, move);
+    move.dst = SQR(7);
+    move_list_append_capture(expected, move);
+    move.dst = SQR(21);
+    move_list_append_capture(expected, move);    
+    move.dst = SQR(23);
+    move_list_append_capture(expected, move);    
+    generate_captures(&state, &movelist);        
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+    /* Move list: 14-5, 14-7, 14-21, 14-23 */
+    
+
     EXIT_UNITTEST();
 }
 
