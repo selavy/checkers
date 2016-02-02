@@ -424,7 +424,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             PLACE(nwhite, JUMP_DOWN_LEFT(square));
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
-
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
             }
@@ -438,7 +437,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             PLACE(nwhite, JUMP_DOWN_RIGHT(square));
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
-        
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
             }
@@ -494,7 +492,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     if (!LEFT(square) && !LEFT2(square) && OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_LEFT(square);
-                        if (!multicapture_black(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
+                        if (!multicapture_black(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) | MASK(JUMP_UP_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_UP_LEFT(square);                        
                             move_list_append_capture(*moves, move);
@@ -503,7 +501,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_RIGHT(square);
-                        if (!multicapture_black(WHITE(*state) & ~MASK(UP_RIGHT(square)), (BLACK(*state) & ~MASK(square)) | MASK(JUMP_UP_LEFT(square)), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
+                        if (!multicapture_black(WHITE(*state) & ~MASK(UP_RIGHT(square)), (BLACK(*state) | MASK(JUMP_UP_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_UP_RIGHT(square);                        
                             move_list_append_capture(*moves, move);
@@ -514,9 +512,13 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                 if (BLACK_KING(*state, square)) {
                     if (!BOTTOM(square) && !BOTTOM2(square)) {                        
                         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
-                            move.src = square;
-                            move.dst = JUMP_DOWN_LEFT(square);
-                            move_list_append_capture(*moves, move);                        
+                            path[0] = square;
+                            path[1] = JUMP_DOWN_LEFT(square);
+                            if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_LEFT(square)), (BLACK(*state) | MASK(JUMP_DOWN_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
+                                move.src = square;
+                                move.dst = JUMP_DOWN_LEFT(square);                        
+                                move_list_append_capture(*moves, move);
+                            }
                         }
                         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                             move.src = square;
@@ -535,14 +537,14 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
 
-                        if (!multicapture_white((WHITE(*state) & ~MASK(square)) | MASK(JUMP_DOWN_LEFT(square)), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
+                        if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_LEFT(square);                        
                             move_list_append_capture(*moves, move);
                         }                    
                     }
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
-                        if (!multicapture_white((WHITE(*state) & ~MASK(square)) | MASK(JUMP_DOWN_RIGHT(square)), WHITE(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
+                        if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), WHITE(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_RIGHT(square);                        
                             move_list_append_capture(*moves, move);
@@ -1263,7 +1265,7 @@ void unittest_generate_multicaptures() {
     move.pathlen = 1;
     move_list_append_capture(expected, move);
     generate_captures(&state, &movelist);        
-    UNITTEST_ASSERT_MOVELIST(movelist, expected);    
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
     /* Move list: 28-19-10 */    
 
 
