@@ -491,7 +491,7 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
     return ret;
 }
 
-int generate_captures(struct state_t* state, struct move_list_t* moves) {
+int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     square_t square;
     struct move_t move;
     move_init(&move);
@@ -621,7 +621,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
 }
 
 
-int generate_moves(struct state_t* state, struct move_list_t* moves) {
+int generate_moves(const struct state_t* state, struct move_list_t* moves) {
     square_t square;
     if (black_move(*state)) {
         for (square = 0; square < 32; ++square) {
@@ -673,7 +673,7 @@ int generate_moves(struct state_t* state, struct move_list_t* moves) {
     return 0;
 }
 
-int get_moves(struct state_t* state, struct move_list_t* moves) {
+int get_moves(const struct state_t* state, struct move_list_t* moves) {
     generate_captures(state, moves);
     if (moves->njumps == 0) {
         generate_moves(state, moves);
@@ -681,33 +681,6 @@ int get_moves(struct state_t* state, struct move_list_t* moves) {
     return 0;
 }
 
-uint64_t perft(int depth) {
-    uint64_t nodes = 0;
-    struct move_list_t movelist;
-    struct state_t state;
-    struct state_t ostate; /* original state */
-    int nmoves;
-    int i;
-    
-    if (depth == 0) return 1;
-
-    state_init(&ostate);
-    setup_start_position(ostate);
-    move_list_init(&movelist);
-
-    if (get_moves(&ostate, &movelist) != 0) {
-        fprintf(stderr, "Generate moves failed!\n");
-        exit(0);
-    }
-
-    nmoves = move_list_num_moves(movelist);
-    for (i = 0; i < nmoves; ++i) {
-        memcpy(&state, &ostate, sizeof(state));
-    }
-
-    /* nodes = move_list_num_moves(movelist); */
-    return nodes;
-}
 
 /* returns -1 on error */
 int jumped_square(int src, int dst) {
@@ -818,6 +791,34 @@ void make_move(struct state_t* state, const struct move_t* move) {
         }        
     }
 }
+
+uint64_t __perft_helper(int depth, const struct state_t* in_state) {
+    struct state_t state;
+    struct move_list_t movelist;
+    int i;
+    int nmoves;
+    int64_t nodes = 0;
+    if (depth == 0) return 1;
+    move_list_init(&movelist);
+    get_moves(in_state, &movelist);
+    nmoves = move_list_num_moves(movelist);
+    for (i = 0; i < nmoves; ++i) {
+        memcpy(&state, in_state, sizeof(state));
+        state.moves += 1;
+        make_move(&state, &(movelist.moves[i]));
+        nodes += __perft_helper(depth - 1, &state);
+    }
+    return nodes;
+}
+
+uint64_t perft(int depth) {
+    struct state_t state;
+    state_init(&state);
+    setup_start_position(state);
+    return __perft_helper(depth, &state);
+}
+
+/* --- Begin Unit Tests --- */
 
 void unittest_move_list_compare() {
     struct move_list_t movelist;
@@ -1961,11 +1962,12 @@ void unittest_make_move() {
     EXIT_UNITTEST();
 }
 
+/* --- End Unit Tests --- */
+
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t moves;
-    /* struct move_t move; */
-    /* int depth; */
+    int depth;
     
     state_init(&state);
     move_list_init(&moves);
@@ -1983,19 +1985,10 @@ int main(int argc, char **argv) {
     setup_start_position(state);
     print_board(state);
 
-    /* move_init(&move); */
-    /* move.src = SQR(11); */
-    /* move.dst = SQR(15); */
-    /* printf("Is non-capture? %s\n", is_noncapture(&move) ? "true":"false"); */
-    
-    /* make_move(&state, &move); */
-    /* print_board(state); */
-    
-    /* get_moves(&state, &moves); */
-    /* printf("Move list: "); print_move_list(moves); printf("\n"); */
+    for (depth = 0; depth < 5; ++depth) {
+        printf("moves at depth %d = %lu\n", depth, perft(depth));
+    }
 
-    /* depth = 1; */
-    /* printf("moves at depth %d = %lu\n", depth, perft(depth)); */
 
     printf("Bye.\n");
     return 0;
