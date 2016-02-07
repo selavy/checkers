@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #define MAX_PATH 8
 #define MAX_MOVES 32
@@ -802,10 +803,11 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     move_list_init(&movelist);
     get_moves(in_state, &movelist);
     nmoves = move_list_num_moves(movelist);
+    if (depth == 1) return nmoves;
     for (i = 0; i < nmoves; ++i) {
         memcpy(&state, in_state, sizeof(state));
-        state.moves += 1;
         make_move(&state, &(movelist.moves[i]));
+        ++state.moves;
         nodes += __perft_helper(depth - 1, &state);
     }
     return nodes;
@@ -1962,12 +1964,64 @@ void unittest_make_move() {
     EXIT_UNITTEST();
 }
 
+
+
+void unittest_perft() {
+    int depth;
+    // from www.aartbik.com/MISC/checkers.html
+    const uint64_t expected[] = {
+         1
+        ,7
+        ,49
+        ,302
+        ,1469
+        ,7361
+        ,36768
+        ,179740
+        ,845931
+        ,3963680
+        ,18391564
+        /* ,85242128 */
+        /* ,388623673 */
+        /* ,1766623630 */
+        /* ,7978439499 */
+        /* ,36263167175 */
+        /* ,165629569428 */
+        /* ,758818810990 */
+        /* ,3493881706141 */
+        /* ,16114043592799 */
+        /* ,74545030871553 */
+        /* ,345100524480819 */
+        /* ,1602372721738102 */
+        /* ,7437536860666213 */
+        /* ,34651381875296000 */
+        /* ,161067479882075800 */
+        /* ,752172458688067137 */
+        /* ,3499844183628002605 */
+        /* ,16377718018836900735 */
+    };
+    uint64_t nodes;
+    struct timeval start;
+    struct timeval end;
+    ENTER_UNITTEST();
+
+    for (depth = 0; depth < (sizeof(expected) / sizeof(expected[0])); ++depth) {
+        gettimeofday(&start, 0);
+        nodes = perft(depth);
+        gettimeofday(&end, 0);
+        
+        printf("perft(%d) = %lu in %lu ms.\n", depth, nodes, ((end.tv_sec * 1000000UL + end.tv_usec) - (start.tv_sec * 1000000UL + start.tv_usec)) / 1000UL); 
+    }
+
+    EXIT_UNITTEST();
+}
+
 /* --- End Unit Tests --- */
 
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t moves;
-    int depth;
+    /* int depth; */
     
     state_init(&state);
     move_list_init(&moves);
@@ -1979,16 +2033,16 @@ int main(int argc, char **argv) {
     unittest_generate_captures();
     unittest_generate_multicaptures();
     unittest_make_move();
+    unittest_perft();
     
     /* -- to show starting position -- */
     state_init(&state);
     setup_start_position(state);
     print_board(state);
 
-    for (depth = 0; depth < 5; ++depth) {
-        printf("moves at depth %d = %lu\n", depth, perft(depth));
-    }
-
+    /* for (depth = 0; depth < 12; ++depth) { */
+    /*     printf("moves at depth %d = %lu\n", depth, perft(depth)); */
+    /* } */
 
     printf("Bye.\n");
     return 0;
