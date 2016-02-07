@@ -1733,12 +1733,27 @@ void unittest_make_move() {
     move_init(&move);    
     move.src = SQR(11);
     move.dst = SQR(20);
-    UNITTEST_ASSERT(is_noncapture(&move), FALSE);
-    UNITTEST_ASSERT(is_capture(&move), TRUE);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
     make_move(&state, &move);
     UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(20)), TRUE);
+
+    /* white capture black pawn */
+    state_init(&state);
+    state.black = SQUARE(15);
+    state.white = SQUARE(20);
+    state.moves = 1;
+    move_init(&move);    
+    move.src = SQR(20);
+    move.dst = SQR(11);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.black | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(20)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(11)), TRUE);
 
     /* black capture white king */
     state_init(&state);
@@ -1754,6 +1769,21 @@ void unittest_make_move() {
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(20)), TRUE);
 
+    /* white capture black king */
+    state_init(&state);
+    state.black_kings = SQUARE(15);
+    state.white = SQUARE(20);
+    state.moves = 1;
+    move_init(&move);    
+    move.src = SQR(20);
+    move.dst = SQR(11);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.black | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(20)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(11)), TRUE);
+
     /* -- black king -- */
     state_init(&state);
     state.black_kings = SQUARE(11);
@@ -1766,6 +1796,21 @@ void unittest_make_move() {
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(15)), TRUE);
 
+    /* -- white king -- */
+    state_init(&state);
+    state.white_kings = SQUARE(11);
+    state.moves = 1;
+    move_init(&move);
+    move.src = SQR(11);
+    move.dst = SQR(15);
+    UNITTEST_ASSERT(!!is_noncapture(&move), TRUE);
+    UNITTEST_ASSERT(!!is_capture(&move), FALSE);    
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.black_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(15)), TRUE);
+
+    /* black king captures white pawn */
     state_init(&state);
     state.black_kings = SQUARE(11);
     state.white = SQUARE(15);
@@ -1778,6 +1823,21 @@ void unittest_make_move() {
     UNITTEST_ASSERT(state.white | state.white_kings | state.black, 0);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(20)), TRUE);
+
+    /* white king captures black pawn */
+    state_init(&state);
+    state.white_kings = SQUARE(11);
+    state.black = SQUARE(15);
+    state.moves = 1;
+    move_init(&move);        
+    move.src = SQR(11);
+    move.dst = SQR(20);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.black_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(20)), TRUE);
 
     /* black king capture white king */
     state_init(&state);
@@ -1793,6 +1853,21 @@ void unittest_make_move() {
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(20)), TRUE);
 
+    /* white king capture black king */
+    state_init(&state);
+    state.white_kings = SQUARE(11);
+    state.black_kings = SQUARE(15);
+    state.moves = 1;
+    move_init(&move);        
+    move.src = SQR(11);
+    move.dst = SQR(20);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.black_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(20)), TRUE);
+
     /* black multi-jump */
     /* 1 - (x5) 10 - (x13) - 17 - (x21) - 26 */
     state_init(&state);
@@ -1806,7 +1881,6 @@ void unittest_make_move() {
     move.path[1] = SQR(17);
     UNITTEST_ASSERT(is_noncapture(&move), FALSE);
     UNITTEST_ASSERT(is_capture(&move), TRUE);
-
     move_list_init(&movelist);
     get_moves(&state, &movelist);
     UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
@@ -1815,6 +1889,29 @@ void unittest_make_move() {
     UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(1)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(26)), TRUE);
+
+    /* white multi-jump */
+    /* 26 - (x21) - 17 - (x13) - 10 - (x5) - 1 */
+    state_init(&state);
+    state.white = SQUARE(26);
+    state.black = SQUARE(5) | SQUARE(13) | SQUARE(21);
+    state.moves = 1;
+    move_init(&move);
+    move.src = SQR(26);
+    move.dst = SQR(1);
+    move.pathlen = 2;
+    move.path[0] = SQR(17);
+    move.path[1] = SQR(10);
+    UNITTEST_ASSERT(is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(is_capture(&move), TRUE);
+    move_list_init(&movelist);
+    get_moves(&state, &movelist);
+    UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
+    UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.black | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(26)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(1)), TRUE);
 
     /* black king multi-jump */
     /* 1 - (x5) 10 - (x13) - 17 - (x21) - 26 */
@@ -1829,7 +1926,6 @@ void unittest_make_move() {
     move.path[1] = SQR(17);
     UNITTEST_ASSERT(is_noncapture(&move), FALSE);
     UNITTEST_ASSERT(is_capture(&move), TRUE);
-
     move_list_init(&movelist);
     get_moves(&state, &movelist);
     UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
@@ -1838,6 +1934,29 @@ void unittest_make_move() {
     UNITTEST_ASSERT(state.white | state.white_kings | state.black, 0);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(1)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(26)), TRUE);
+
+    /* white king multi-jump */
+    /* 1 - (x5) 10 - (x13) - 17 - (x21) - 26 */
+    state_init(&state);
+    state.white_kings = SQUARE(1);
+    state.black = SQUARE(5) | SQUARE(13) | SQUARE(21);
+    state.moves = 1;
+    move_init(&move);
+    move.src = SQR(1);
+    move.dst = SQR(26);
+    move.pathlen = 2;
+    move.path[0] = SQR(10);
+    move.path[1] = SQR(17);
+    UNITTEST_ASSERT(is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(is_capture(&move), TRUE);
+    move_list_init(&movelist);
+    get_moves(&state, &movelist);
+    UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
+    UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.black_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(1)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(26)), TRUE);
 
     EXIT_UNITTEST();
 }
