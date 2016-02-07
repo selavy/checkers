@@ -109,7 +109,7 @@ struct move_t {
 };
 /* -- end types -- */
 
-boolean is_noncapture(struct move_t* move) {
+boolean is_noncapture(const struct move_t* move) {
     return (move->pathlen == 0)
         && (move->dst == UP_LEFT(move->src)
             || move->dst == UP_RIGHT(move->src)
@@ -117,7 +117,7 @@ boolean is_noncapture(struct move_t* move) {
             || move->dst == DOWN_RIGHT(move->src));
 }
 
-boolean is_capture(struct move_t* move) {
+boolean is_capture(const struct move_t* move) {
     return !is_noncapture(move);
 }
 
@@ -724,22 +724,33 @@ int jumped_square(int src, int dst) {
     }
 }
 
-void make_move(struct state_t* state, struct move_t* move) {
+void make_move(struct state_t* state, const struct move_t* move) {
     int jumped;
+    int i;
+    uint8_t prev;
     if (black_move(*state)) {
         if (BLACK_KING(*state, move->src)) {
             if (is_noncapture(move)) {
                 CLEAR(state->black_kings, move->src);
                 PLACE(state->black_kings, move->dst);
             } else {
+                CLEAR(state->black_kings, move->src);
+                PLACE(state->black_kings, move->dst);
                 if (move->pathlen == 0) {
-                    CLEAR(state->black_kings, move->src);
-                    PLACE(state->black_kings, move->dst);
                     jumped = jumped_square(move->src, move->dst);
                     CLEAR(state->white_kings, jumped);
-                    CLEAR(state->white, jumped);
+                    CLEAR(state->white, jumped);                    
                 } else {
-                    assert(0); /* TODO: implement */
+                    prev = move->src;
+                    for (i = 0; i < move->pathlen; ++i) {
+                        jumped = jumped_square(prev, move->path[i]);
+                        CLEAR(state->white, jumped);
+                        CLEAR(state->white_kings, jumped);
+                        prev = move->path[i];
+                    }
+                    jumped = jumped_square(move->path[move->pathlen - 1], move->dst);
+                    CLEAR(state->white, jumped);
+                    CLEAR(state->white_kings, jumped);
                 }
             }
         } else {
@@ -747,15 +758,24 @@ void make_move(struct state_t* state, struct move_t* move) {
                 CLEAR(state->black, move->src);
                 PLACE(state->black, move->dst);
             } else {
+                CLEAR(state->black, move->src);
+                PLACE(state->black, move->dst);
                 if (move->pathlen == 0) {
-                    CLEAR(state->black, move->src);
-                    PLACE(state->black, move->dst);
                     jumped = jumped_square(move->src, move->dst);
                     CLEAR(state->white_kings, jumped);
                     CLEAR(state->white, jumped);
                 } else {
-                    assert(0); /* TODO: implement */
-                }                
+                    prev = move->src;
+                    for (i = 0; i < move->pathlen; ++i) {
+                        jumped = jumped_square(prev, move->path[i]);
+                        CLEAR(state->white, jumped);
+                        CLEAR(state->white_kings, jumped);
+                        prev = move->path[i];
+                        jumped = jumped_square(move->path[move->pathlen - 1], move->dst);
+                        CLEAR(state->white, jumped);
+                        CLEAR(state->white_kings, jumped);
+                    }
+                }
             }
         }
     } else { /* white_move(*state) */
@@ -1622,6 +1642,7 @@ void unittest_make_move() {
     move.src = SQR(11);
     move.dst = SQR(15);
     UNITTEST_ASSERT(is_noncapture(&move), TRUE);
+    UNITTEST_ASSERT(is_capture(&move), FALSE);
     make_move(&state, &move);
     UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
@@ -1631,10 +1652,11 @@ void unittest_make_move() {
     state_init(&state);
     state.black = SQUARE(11);
     state.white = SQUARE(15);
+    move_init(&move);    
     move.src = SQR(11);
     move.dst = SQR(20);
-    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
-    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    UNITTEST_ASSERT(is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(is_capture(&move), TRUE);
     make_move(&state, &move);
     UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
     UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
@@ -1644,6 +1666,7 @@ void unittest_make_move() {
     state_init(&state);
     state.black = SQUARE(11);
     state.white_kings = SQUARE(15);
+    move_init(&move);        
     move.src = SQR(11);
     move.dst = SQR(20);
     UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
@@ -1668,6 +1691,7 @@ void unittest_make_move() {
     state_init(&state);
     state.black_kings = SQUARE(11);
     state.white = SQUARE(15);
+    move_init(&move);        
     move.src = SQR(11);
     move.dst = SQR(20);
     UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
@@ -1681,6 +1705,7 @@ void unittest_make_move() {
     state_init(&state);
     state.black_kings = SQUARE(11);
     state.white_kings = SQUARE(15);
+    move_init(&move);        
     move.src = SQR(11);
     move.dst = SQR(20);
     UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
@@ -1690,13 +1715,39 @@ void unittest_make_move() {
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(20)), TRUE);
 
+    /* black multi-jump */
+    /* 1 - (x5) 10 - (x13) - 17 - (x21) - 26 */
+    state_init(&state);
+    state.black = SQUARE(1);
+    state.white = SQUARE(5) | SQUARE(13) | SQUARE(21);
+    move_init(&move);
+    move.src = SQR(1);
+    move.dst = SQR(26);
+    move.pathlen = 2;
+    move.path[0] = SQR(10);
+    move.path[1] = SQR(17);
+    UNITTEST_ASSERT(is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(is_capture(&move), TRUE);
+
+    struct move_list_t movelist;
+    get_moves(&state, &movelist);
+    UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
+    UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
+
+    print_board(state);
+    make_move(&state, &move);
+    print_board(state);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(OCCUPIED(state.black, SQR(1)), FALSE);
+    UNITTEST_ASSERT(OCCUPIED(state.black, SQR(26)), TRUE);
+
     EXIT_UNITTEST();
 }
 
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t moves;
-    struct move_t move;
+    /* struct move_t move; */
     /* int depth; */
     
     state_init(&state);
@@ -1715,13 +1766,13 @@ int main(int argc, char **argv) {
     setup_start_position(state);
     print_board(state);
 
-    move_init(&move);
-    move.src = SQR(11);
-    move.dst = SQR(15);
-    printf("Is non-capture? %s\n", is_noncapture(&move) ? "true":"false");
+    /* move_init(&move); */
+    /* move.src = SQR(11); */
+    /* move.dst = SQR(15); */
+    /* printf("Is non-capture? %s\n", is_noncapture(&move) ? "true":"false"); */
     
-    make_move(&state, &move);
-    print_board(state);
+    /* make_move(&state, &move); */
+    /* print_board(state); */
     
     /* get_moves(&state, &moves); */
     /* printf("Move list: "); print_move_list(moves); printf("\n"); */
