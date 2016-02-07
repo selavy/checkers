@@ -1631,6 +1631,7 @@ void unittest_generate_multicaptures() {
 void unittest_make_move() {
     struct state_t state;
     struct move_t move;
+    struct move_list_t movelist;    
     ENTER_UNITTEST();
 
     /* -- black pawn  -- */
@@ -1729,17 +1730,37 @@ void unittest_make_move() {
     UNITTEST_ASSERT(is_noncapture(&move), FALSE);
     UNITTEST_ASSERT(is_capture(&move), TRUE);
 
-    struct move_list_t movelist;
+    move_list_init(&movelist);
     get_moves(&state, &movelist);
     UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
     UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
-
-    print_board(state);
     make_move(&state, &move);
-    print_board(state);
     UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
-    UNITTEST_ASSERT(OCCUPIED(state.black, SQR(1)), FALSE);
-    UNITTEST_ASSERT(OCCUPIED(state.black, SQR(26)), TRUE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(1)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(26)), TRUE);
+
+    /* black king multi-jump */
+    /* 1 - (x5) 10 - (x13) - 17 - (x21) - 26 */
+    state_init(&state);
+    state.black_kings = SQUARE(1);
+    state.white = SQUARE(5) | SQUARE(13) | SQUARE(21);
+    move_init(&move);
+    move.src = SQR(1);
+    move.dst = SQR(26);
+    move.pathlen = 2;
+    move.path[0] = SQR(10);
+    move.path[1] = SQR(17);
+    UNITTEST_ASSERT(is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(is_capture(&move), TRUE);
+
+    move_list_init(&movelist);
+    get_moves(&state, &movelist);
+    UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
+    UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(1)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(26)), TRUE);
 
     EXIT_UNITTEST();
 }
