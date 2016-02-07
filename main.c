@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 #define MAX_PATH 8
 #define MAX_MOVES 32
@@ -64,12 +65,12 @@ static const char * __unittest = 0;
         exit(1);                                                        \
     } while(0)
 #define UNITTEST_ASSERT(actual, expected) do {  \
-        if (actual != expected) {               \
+        if ((actual) != (expected)) {           \
             __UNITTEST_FAIL(__LINE__);          \
         }                                       \
     } while(0)
 #define UNITTEST_ASSERT_NEQU(actual, expected) do { \
-        if (actual == expected) {                   \
+        if ((actual) == (expected)) {               \
             __UNITTEST_FAIL(__LINE__);              \
         }                                           \
     } while(0)
@@ -107,6 +108,18 @@ struct move_t {
     uint8_t pathlen;
 };
 /* -- end types -- */
+
+boolean is_noncapture(struct move_t* move) {
+    return (move->pathlen == 0)
+        && (move->dst == UP_LEFT(move->src)
+            || move->dst == UP_RIGHT(move->src)
+            || move->dst == DOWN_LEFT(move->src)
+            || move->dst == DOWN_RIGHT(move->src));
+}
+
+boolean is_capture(struct move_t* move) {
+    return !is_noncapture(move);
+}
 
 #define move_init(move) memset(move, 0, sizeof(*move))
 
@@ -181,7 +194,6 @@ void move_list_sort(struct move_list_t* list) {
     }
 }
 
-
 int move_list_init(struct move_list_t* list) {
     list->njumps = 0;
     list->nmoves = 0;
@@ -230,8 +242,6 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
     }
 }
 #define print_move_list(list) __print_move_list(stdout, &(list));
-
-
 
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
@@ -305,7 +315,6 @@ void __print_board(FILE* file, struct state_t* state) {
 }
 #define print_board(state) __print_board(stdout, &state);
 
-
 void __setup_start_position(struct state_t* state) {
     state->white = 4293918720;
     state->black = 4095;
@@ -315,10 +324,10 @@ void __setup_start_position(struct state_t* state) {
 }
 #define setup_start_position(state)             \
     (state).white = 4293918720;                 \
-     (state).black = 4095;                      \
-     (state).white_kings = 0;                   \
-     (state).black_kings = 0;                   \
-     (state).moves = 0;
+    (state).black = 4095;                       \
+    (state).white_kings = 0;                    \
+    (state).black_kings = 0;                    \
+    (state).moves = 0;
 
 void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     int i;
@@ -611,6 +620,7 @@ int generate_captures(struct state_t* state, struct move_list_t* moves) {
     return 0;
 }
 
+
 int generate_moves(struct state_t* state, struct move_list_t* moves) {
     square_t square;
     if (black_move(*state)) {
@@ -669,6 +679,88 @@ int get_moves(struct state_t* state, struct move_list_t* moves) {
         generate_moves(state, moves);
     }
     return 0;
+}
+
+uint64_t perft(int depth) {
+    uint64_t nodes = 0;
+    struct move_list_t movelist;
+    struct state_t state;
+    struct state_t ostate; /* original state */
+    int nmoves;
+    int i;
+    
+    if (depth == 0) return 1;
+
+    state_init(&ostate);
+    setup_start_position(ostate);
+    move_list_init(&movelist);
+
+    if (get_moves(&ostate, &movelist) != 0) {
+        fprintf(stderr, "Generate moves failed!\n");
+        exit(0);
+    }
+
+    nmoves = move_list_num_moves(movelist);
+    for (i = 0; i < nmoves; ++i) {
+        memcpy(&state, &ostate, sizeof(state));
+    }
+
+    /* nodes = move_list_num_moves(movelist); */
+    return nodes;
+}
+
+/* returns -1 on error */
+int jumped_square(int src, int dst) {
+    if (dst == JUMP_UP_LEFT(src)) {
+        return UP_LEFT(src);
+    } else if (dst == JUMP_UP_RIGHT(src)) {
+        return UP_RIGHT(src);
+    } else if (dst == JUMP_DOWN_LEFT(src)) {
+        return DOWN_LEFT(src);
+    } else if (dst == JUMP_DOWN_RIGHT(src)) {
+        return DOWN_RIGHT(src);
+    } else {
+        return -1;
+    }
+}
+
+void make_move(struct state_t* state, struct move_t* move) {
+    int jumped;
+    if (black_move(*state)) {
+        if (BLACK_KING(*state, move->src)) {
+            if (is_noncapture(move)) {
+                CLEAR(state->black_kings, move->src);
+                PLACE(state->black_kings, move->dst);
+            } else {
+                if (move->pathlen == 0) {
+                    CLEAR(state->black_kings, move->src);
+                    PLACE(state->black_kings, move->dst);
+                    jumped = jumped_square(move->src, move->dst);
+                    CLEAR(state->white_kings, jumped);
+                    CLEAR(state->white, jumped);
+                } else {
+                    assert(0); /* TODO: implement */
+                }
+            }
+        } else {
+            if (is_noncapture(move)) {
+                CLEAR(state->black, move->src);
+                PLACE(state->black, move->dst);
+            } else {
+                if (move->pathlen == 0) {
+                    CLEAR(state->black, move->src);
+                    PLACE(state->black, move->dst);
+                    jumped = jumped_square(move->src, move->dst);
+                    CLEAR(state->white_kings, jumped);
+                    CLEAR(state->white, jumped);
+                } else {
+                    assert(0); /* TODO: implement */
+                }                
+            }
+        }
+    } else { /* white_move(*state) */
+        assert(0); /* TODO: implement */
+    }
 }
 
 void unittest_move_list_compare() {
@@ -1516,9 +1608,96 @@ void unittest_generate_multicaptures() {
     EXIT_UNITTEST();
 }
 
+void unittest_make_move() {
+    struct state_t state;
+    struct move_t move;
+    ENTER_UNITTEST();
+
+    /* -- black pawn  -- */
+    
+    /* black move */
+    state_init(&state);
+    state.black = SQUARE(11);
+    move_init(&move);
+    move.src = SQR(11);
+    move.dst = SQR(15);
+    UNITTEST_ASSERT(is_noncapture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(15)), TRUE);
+
+    /* black capture white pawn */
+    state_init(&state);
+    state.black = SQUARE(11);
+    state.white = SQUARE(15);
+    move.src = SQR(11);
+    move.dst = SQR(20);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(20)), TRUE);
+
+    /* black capture white king */
+    state_init(&state);
+    state.black = SQUARE(11);
+    state.white_kings = SQUARE(15);
+    move.src = SQR(11);
+    move.dst = SQR(20);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black, SQR(20)), TRUE);
+
+    /* -- black king -- */
+    state_init(&state);
+    state.black_kings = SQUARE(11);
+    move_init(&move);
+    move.src = SQR(11);
+    move.dst = SQR(15);
+    UNITTEST_ASSERT(is_noncapture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(15)), TRUE);
+
+    state_init(&state);
+    state.black_kings = SQUARE(11);
+    state.white = SQUARE(15);
+    move.src = SQR(11);
+    move.dst = SQR(20);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(20)), TRUE);
+
+    /* black king capture white king */
+    state_init(&state);
+    state.black_kings = SQUARE(11);
+    state.white_kings = SQUARE(15);
+    move.src = SQR(11);
+    move.dst = SQR(20);
+    UNITTEST_ASSERT(!!is_noncapture(&move), FALSE);
+    UNITTEST_ASSERT(!!is_capture(&move), TRUE);
+    make_move(&state, &move);
+    UNITTEST_ASSERT(state.white | state.white_kings | state.black, 0);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(11)), FALSE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.black_kings, SQR(20)), TRUE);
+
+    EXIT_UNITTEST();
+}
+
 int main(int argc, char **argv) {
     struct state_t state;
     struct move_list_t moves;
+    struct move_t move;
+    /* int depth; */
     
     state_init(&state);
     move_list_init(&moves);
@@ -1529,15 +1708,26 @@ int main(int argc, char **argv) {
     unittest_generate_moves();
     unittest_generate_captures();
     unittest_generate_multicaptures();
+    unittest_make_move();
     
     /* -- to show starting position -- */
     state_init(&state);
     setup_start_position(state);
     print_board(state);
 
-    get_moves(&state, &moves);
+    move_init(&move);
+    move.src = SQR(11);
+    move.dst = SQR(15);
+    printf("Is non-capture? %s\n", is_noncapture(&move) ? "true":"false");
+    
+    make_move(&state, &move);
+    print_board(state);
+    
+    /* get_moves(&state, &moves); */
+    /* printf("Move list: "); print_move_list(moves); printf("\n"); */
 
-    printf("Move list: "); print_move_list(moves); printf("\n");
+    /* depth = 1; */
+    /* printf("moves at depth %d = %lu\n", depth, perft(depth)); */
 
     printf("Bye.\n");
     return 0;
