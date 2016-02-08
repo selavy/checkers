@@ -70,6 +70,12 @@ static const char * __unittest = 0;
             __UNITTEST_FAIL(__LINE__);          \
         }                                       \
     } while(0)
+#define UNITTEST_ASSERT_MSG(actual, expected, format) do {              \
+        if ((actual) != (expected)) {                                   \
+            fprintf(stderr, "Expected: " format ", Actual: " format "\n", (expected), (actual)); \
+            __UNITTEST_FAIL(__LINE__);                                  \
+        }                                                               \
+    } while(0)
 #define UNITTEST_ASSERT_NEQU(actual, expected) do { \
         if ((actual) == (expected)) {               \
             __UNITTEST_FAIL(__LINE__);              \
@@ -726,7 +732,12 @@ void make_move(struct state_t* state, const struct move_t* move) {
             }
         } else {
             CLEAR(state->black, move->src);
-            PLACE(state->black, move->dst);
+            if (TOP(move->dst)) {
+                printf("promotion for black -> %d\n", move->dst);
+                PLACE(state->black_kings, move->dst);
+            } else {
+                PLACE(state->black, move->dst);
+            }
             if (is_capture(move)) {
                 if (move->pathlen == 0) {
                     jumped = jumped_square(move->src, move->dst);
@@ -745,6 +756,14 @@ void make_move(struct state_t* state, const struct move_t* move) {
                     }
                 }
             }
+
+            /* check if promotion */
+            /* if (TOP(move->dst)) { */
+            /* if (move->dst == 28 || move->dst == 29 || move->dst == 30 || move->dst == 31) { */
+            /*     printf("promotion for black -> %d\n", move->dst); */
+            /*     CLEAR(state->black, move->dst); */
+            /*     PLACE(state->black_kings, move->dst); */
+            /* } */
         }
     } else { /* white_move(*state) */
         if (WHITE_KING(*state, move->src)) {
@@ -770,6 +789,12 @@ void make_move(struct state_t* state, const struct move_t* move) {
             }
         } else {
             CLEAR(state->white, move->src);
+            if (BOTTOM(move->dst)) {
+                printf("promotion for white -> %d\n", move->dst);                
+                PLACE(state->white_kings, move->dst);
+            } else {
+                PLACE(state->white, move->dst);
+            }
             PLACE(state->white, move->dst);
             if (is_capture(move)) {
                 if (move->pathlen == 0) {
@@ -789,6 +814,14 @@ void make_move(struct state_t* state, const struct move_t* move) {
                     }
                 }
             }
+
+            /* check if promotion */
+            /* if (BOTTOM(move->dst)) { */
+            /* if (move->dst == 0 || move->dst == 1 || move->dst == 2 || move->dst == 3) { */
+            /*     printf("promotion for white -> %d\n", move->dst); */
+            /*     CLEAR(state->white, move->dst); */
+            /*     PLACE(state->white_kings, move->dst); */
+            /* } */
         }        
     }
 }
@@ -1912,9 +1945,9 @@ void unittest_make_move() {
     UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
     UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
     make_move(&state, &move);
-    UNITTEST_ASSERT(state.black | state.white_kings | state.black_kings, 0);
+    UNITTEST_ASSERT(state.black | state.white | state.black_kings, 0); /* white pawn was promoted */
     UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(26)), FALSE);
-    UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(1)), TRUE);
+    UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(1)), TRUE);
 
     /* black king multi-jump */
     /* 1 - (x5) 10 - (x13) - 17 - (x21) - 26 */
@@ -1977,10 +2010,10 @@ void unittest_perft() {
         ,1469
         ,7361
         ,36768
-        ,179740
-        ,845931
-        ,3963680
-        ,18391564
+        /* ,179740 */
+        /* ,845931 */
+        /* ,3963680 */
+        /* ,18391564 */
         /* ,85242128 */
         /* ,388623673 */
         /* ,1766623630 */
@@ -2010,7 +2043,8 @@ void unittest_perft() {
         nodes = perft(depth);
         gettimeofday(&end, 0);
         
-        printf("perft(%d) = %lu in %lu ms.\n", depth, nodes, ((end.tv_sec * 1000000UL + end.tv_usec) - (start.tv_sec * 1000000UL + start.tv_usec)) / 1000UL); 
+        printf("perft(%d) = %lu in %lu ms.\n", depth, nodes, ((end.tv_sec * 1000000UL + end.tv_usec) - (start.tv_sec * 1000000UL + start.tv_usec)) / 1000UL);
+        UNITTEST_ASSERT_MSG(nodes, expected[depth], "%lu");
     }
 
     EXIT_UNITTEST();
@@ -2027,12 +2061,12 @@ int main(int argc, char **argv) {
     move_list_init(&moves);
 
     /* unit tests */
-    unittest_move_list_compare();
-    unittest_move_list_sort();
-    unittest_generate_moves();
-    unittest_generate_captures();
-    unittest_generate_multicaptures();
-    unittest_make_move();
+    /* unittest_move_list_compare(); */
+    /* unittest_move_list_sort(); */
+    /* unittest_generate_moves(); */
+    /* unittest_generate_captures(); */
+    /* unittest_generate_multicaptures(); */
+    /* unittest_make_move(); */
     unittest_perft();
     
     /* -- to show starting position -- */
