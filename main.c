@@ -557,7 +557,7 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
             }
         }
     } else {
-        for (square = 0; square < 32; ++square) {
+        for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
                 if (!BOTTOM(square) && !BOTTOM2(square)) {
                     if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
