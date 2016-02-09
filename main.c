@@ -864,7 +864,7 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     if (depth == 1) {
         for (i = 0; i < nmoves; ++i) {
             move = &(movelist.moves[i]);
-            printf("%d -> %d\n", CONV(move->src), CONV(move->dst));
+            printf("%s %d -> %d\n", black_move(*in_state)?"BLACK":"WHITE", CONV(move->src), CONV(move->dst));
             /* printf("%d", CONV(move->src)); */
             /* for (j = 0; j < move->pathlen; ++j) { */
             /*     printf(" -> %d", CONV(move->path[j])); */
