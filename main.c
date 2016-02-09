@@ -810,17 +810,69 @@ void make_move(struct state_t* state, const struct move_t* move) {
     }
 }
 
+int _CC[] = {
+    4,
+    3,
+    2,
+    1,
+    8,
+    7,
+    6,
+    5,
+    12,
+    11,
+    10,
+    9,
+    16,
+    15,
+    14,
+    13,
+    20,
+    19,
+    18,
+    17,
+    24,
+    23,
+    22,
+    21,
+    28,
+    27,
+    26,
+    25,
+    32,
+    31,
+    30,
+    29
+};
+
+#define CONV(sqr) _CC[(sqr)]
+/* #define CONV(sqr) (sqr) */
+
 uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     struct state_t state;
     struct move_list_t movelist;
     int i;
     int nmoves;
     int64_t nodes = 0;
+    const struct move_t* move; /* TODO: remove */
+    /* int j; */               /* TODO: remove */
+    
     if (depth == 0) return 1;
     move_list_init(&movelist);
     get_moves(in_state, &movelist);
     nmoves = move_list_num_moves(movelist);
-    if (depth == 1) return nmoves;
+    if (depth == 1) {
+        for (i = 0; i < nmoves; ++i) {
+            move = &(movelist.moves[i]);
+            printf("%d -> %d\n", CONV(move->src), CONV(move->dst));
+            /* printf("%d", CONV(move->src)); */
+            /* for (j = 0; j < move->pathlen; ++j) { */
+            /*     printf(" -> %d", CONV(move->path[j])); */
+            /* } */
+            /* printf(" -> %d\n", CONV(move->dst)); */
+        }
+        return nmoves;
+    }
     for (i = 0; i < nmoves; ++i) {
         memcpy(&state, in_state, sizeof(state));
         make_move(&state, &(movelist.moves[i]));
@@ -2037,12 +2089,16 @@ void unittest_perft() {
 /* --- End Unit Tests --- */
 
 int main(int argc, char **argv) {
-    struct state_t state;
-    struct move_list_t moves;
+    /* struct state_t state; */
+    /* state_init(&state); */
+    /* print_board(state); */
+    perft(6);    
+    /* struct state_t state; */
+    /* struct move_list_t moves; */
     /* int depth; */
     
-    state_init(&state);
-    move_list_init(&moves);
+    /* state_init(&state); */
+    /* move_list_init(&moves); */
 
     /* unit tests */
     /* unittest_move_list_compare(); */
@@ -2051,17 +2107,17 @@ int main(int argc, char **argv) {
     /* unittest_generate_captures(); */
     /* unittest_generate_multicaptures(); */
     /* unittest_make_move(); */
-    unittest_perft();
+    /* unittest_perft(); */
     
     /* -- to show starting position -- */
-    state_init(&state);
-    setup_start_position(state);
-    print_board(state);
+    /* state_init(&state); */
+    /* setup_start_position(state); */
+    /* print_board(state); */
 
     /* for (depth = 0; depth < 12; ++depth) { */
     /*     printf("moves at depth %d = %lu\n", depth, perft(depth)); */
     /* } */
 
-    printf("Bye.\n");
+    /* printf("Bye.\n"); */
     return 0;
 }
