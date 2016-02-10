@@ -1248,6 +1248,45 @@ void unittest_generate_captures() {
     generate_captures(&state, &movelist);
     APPEND_CAPTURE(&expected, 13, 6);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 16, black on 12, jump to 7 */
+    state_init(&state);
+    state.moves = 1;
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.white = SQUARE(16);
+    state.black = SQUARE(12);    
+    state.black_kings = 0;
+    state.white_kings = 0;
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 16, 7);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 24, black on 20, jump to 15 */
+    state_init(&state);
+    state.moves = 1;
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.white = SQUARE(24);
+    state.black = SQUARE(20);    
+    state.black_kings = 0;
+    state.white_kings = 0;
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 24, 15);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 23, black on 20, jump to 16 */
+    state_init(&state);
+    state.moves = 1;
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.white = SQUARE(23);
+    state.black = SQUARE(20);    
+    state.black_kings = 0;
+    state.white_kings = 0;
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 23, 16);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);    
         
     EXIT_UNITTEST();
 }
@@ -2103,22 +2142,18 @@ void unittest_perft() {
 
 int main(int argc, char **argv) {
     /* struct state_t state; */
+    /* struct move_list_t moves; */    
     /* state_init(&state); */
+    /* move_list_init(&moves); */    
     /* print_board(state); */
-
-    
-    #if 0
-    printf("%lu\n", perft(5));
-    /* #endif */
-    perft(6);
-    #endif
-    
-    /* struct state_t state; */
-    /* struct move_list_t moves; */
     /* int depth; */
     
-    /* state_init(&state); */
-    /* move_list_init(&moves); */
+    #ifdef PRINT_PERFT
+    printf("%lu\n", perft(5));
+    #endif
+    #ifdef PERFT
+    perft(6);
+    #endif
 
     /* unit tests */
     unittest_move_list_compare();
@@ -2128,15 +2163,19 @@ int main(int argc, char **argv) {
     unittest_generate_multicaptures();
     unittest_make_move();
     unittest_perft();
-    
-    /* -- to show starting position -- */
-    /* state_init(&state); */
-    /* setup_start_position(state); */
-    /* print_board(state); */
 
-    /* for (depth = 0; depth < 12; ++depth) { */
-    /*     printf("moves at depth %d = %lu\n", depth, perft(depth)); */
-    /* } */
+    #ifdef SHOW_STARTING_POSITION
+    /* -- to show starting position -- */
+    state_init(&state);
+    setup_start_position(state);
+    print_board(state);
+    #endif
+
+    #ifdef PERFT
+    for (depth = 0; depth < 12; ++depth) {
+        printf("moves at depth %d = %lu\n", depth, perft(depth));
+    }
+    #endif
 
     /* printf("Bye.\n"); */
     return 0;
