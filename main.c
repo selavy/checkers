@@ -733,7 +733,6 @@ void make_move(struct state_t* state, const struct move_t* move) {
         } else {
             CLEAR(state->black, move->src);
             if (TOP(move->dst)) {
-                printf("promotion for black -> %d\n", move->dst);
                 PLACE(state->black_kings, move->dst);
             } else {
                 PLACE(state->black, move->dst);
@@ -782,12 +781,10 @@ void make_move(struct state_t* state, const struct move_t* move) {
         } else {
             CLEAR(state->white, move->src);
             if (BOTTOM(move->dst)) {
-                printf("promotion for white -> %d\n", move->dst);                
                 PLACE(state->white_kings, move->dst);
             } else {
                 PLACE(state->white, move->dst);
             }
-            PLACE(state->white, move->dst);
             if (is_capture(move)) {
                 if (move->pathlen == 0) {
                     jumped = jumped_square(move->src, move->dst);
@@ -854,23 +851,23 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     int i;
     int nmoves;
     int64_t nodes = 0;
-    const struct move_t* move; /* TODO: remove */
-    /* int j; */               /* TODO: remove */
+    /* const struct move_t* move; /\* TODO: remove *\/ */
+    /* int j;               /\* TODO: remove *\/ */
     
     if (depth == 0) return 1;
     move_list_init(&movelist);
     get_moves(in_state, &movelist);
     nmoves = move_list_num_moves(movelist);
     if (depth == 1) {
-        for (i = 0; i < nmoves; ++i) {
-            move = &(movelist.moves[i]);
-            printf("%s %d -> %d\n", black_move(*in_state)?"BLACK":"WHITE", CONV(move->src), CONV(move->dst));
-            /* printf("%d", CONV(move->src)); */
-            /* for (j = 0; j < move->pathlen; ++j) { */
-            /*     printf(" -> %d", CONV(move->path[j])); */
-            /* } */
-            /* printf(" -> %d\n", CONV(move->dst)); */
-        }
+        /* for (i = 0; i < nmoves; ++i) { */
+        /*     move = &(movelist.moves[i]); */
+        /*     /\* printf("%d -> %d\n", CONV(move->src), CONV(move->dst)); *\/ */
+        /*     printf("%d", CONV(move->src)); */
+        /*     for (j = 0; j < move->pathlen; ++j) { */
+        /*         printf(" -> %d", CONV(move->path[j])); */
+        /*     } */
+        /*     printf(" -> %d\n", CONV(move->dst)); */
+        /* } */
         return nmoves;
     }
     for (i = 0; i < nmoves; ++i) {
@@ -1237,7 +1234,20 @@ void unittest_generate_captures() {
     state.moves = 1;
     generate_captures(&state, &movelist);
     APPEND_CAPTURE(&expected, 32, 23);
-    UNITTEST_ASSERT_MOVELIST(movelist, expected);        
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 13, black on 10 */
+    state_init(&state);
+    state.moves = 1;
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.black = SQUARE(10);
+    state.white = SQUARE(13);
+    state.black_kings = 0;
+    state.white_kings = 0;
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 13, 6);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
         
     EXIT_UNITTEST();
 }
@@ -1981,7 +1991,10 @@ void unittest_make_move() {
     UNITTEST_ASSERT(move_list_num_moves(movelist), 1);
     UNITTEST_ASSERT(move_compare(&move, &(movelist.moves[0])), 0);
     make_move(&state, &move);
-    UNITTEST_ASSERT(state.black | state.white | state.black_kings, 0); /* white pawn was promoted */
+    UNITTEST_ASSERT_MSG(state.black, 0, "%d");
+    UNITTEST_ASSERT_MSG(state.black_kings, 0, "%d");
+    UNITTEST_ASSERT_MSG(state.white_kings, 1, "%d");
+    UNITTEST_ASSERT_MSG(state.white, 0, "%d");    
     UNITTEST_ASSERT(!!OCCUPIED(state.white, SQR(26)), FALSE);
     UNITTEST_ASSERT(!!OCCUPIED(state.white_kings, SQR(1)), TRUE);
 
@@ -2092,7 +2105,14 @@ int main(int argc, char **argv) {
     /* struct state_t state; */
     /* state_init(&state); */
     /* print_board(state); */
-    perft(6);    
+
+    
+    #if 0
+    printf("%lu\n", perft(5));
+    /* #endif */
+    perft(6);
+    #endif
+    
     /* struct state_t state; */
     /* struct move_list_t moves; */
     /* int depth; */
@@ -2101,13 +2121,13 @@ int main(int argc, char **argv) {
     /* move_list_init(&moves); */
 
     /* unit tests */
-    /* unittest_move_list_compare(); */
-    /* unittest_move_list_sort(); */
-    /* unittest_generate_moves(); */
-    /* unittest_generate_captures(); */
-    /* unittest_generate_multicaptures(); */
-    /* unittest_make_move(); */
-    /* unittest_perft(); */
+    unittest_move_list_compare();
+    unittest_move_list_sort();
+    unittest_generate_moves();
+    unittest_generate_captures();
+    unittest_generate_multicaptures();
+    unittest_make_move();
+    unittest_perft();
     
     /* -- to show starting position -- */
     /* state_init(&state); */
