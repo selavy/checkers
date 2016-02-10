@@ -1089,6 +1089,8 @@ void unittest_generate_captures() {
     struct move_list_t expected;
     ENTER_UNITTEST();
 
+    #if 0
+    
     /* black on 14 */
     state_init(&state);
     move_list_init(&movelist);
@@ -1288,21 +1290,65 @@ void unittest_generate_captures() {
     APPEND_CAPTURE(&expected, 23, 16);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
+    #endif
+    
     /* white on 16, jump to 7 */
     state_init(&state);
-    state.moves = 1;
     move_list_init(&movelist);
     move_list_init(&expected);
     setup_start_position(state);
-
+    state.moves = 1;    
     CLEAR(state.white, SQR(24));
     CLEAR(state.black, SQR(16));
     CLEAR(state.black, SQR(7));
     PLACE(state.white, SQR(16));
-    print_board(state);
-    
     generate_captures(&state, &movelist);
     APPEND_CAPTURE(&expected, 16, 7);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 16, jump to 7 */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    setup_start_position(state);
+    state.moves = 1;    
+    CLEAR(state.white, SQR(24));
+    CLEAR(state.black, SQR(16));
+    CLEAR(state.black, SQR(7));
+    PLACE(state.white, SQR(16));
+    PLACE(state.black, SQR(13));
+    PLACE(state.black, SQR(14));
+    PLACE(state.black, SQR(15));
+    PLACE(state.black, SQR(17));
+    PLACE(state.black, SQR(18));
+    PLACE(state.black, SQR(19));
+    PLACE(state.black, SQR(20));
+    PLACE(state.black, SQR(24));
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 16, 7);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 16, jump to 7 */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    setup_start_position(state);
+    state.moves = 1;    
+    CLEAR(state.white, SQR(24));
+    CLEAR(state.black, SQR(16));
+    CLEAR(state.black, SQR(7));
+    PLACE(state.white, SQR(16));
+    PLACE(state.white, SQR(13));
+    PLACE(state.white, SQR(14));
+    PLACE(state.white, SQR(15));
+    PLACE(state.white, SQR(17));
+    PLACE(state.white, SQR(18));
+    PLACE(state.white, SQR(19));
+    PLACE(state.white, SQR(20));
+    PLACE(state.white, SQR(24));
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 16, 7);
+    APPEND_CAPTURE(&expected, 14, 7);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);    
         
     EXIT_UNITTEST();
@@ -2173,6 +2219,7 @@ int main(int argc, char **argv) {
     #endif
 
     /* unit tests */
+//    #if 0
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
@@ -2180,6 +2227,7 @@ int main(int argc, char **argv) {
     unittest_generate_multicaptures();
     unittest_make_move();
     unittest_perft();
+//    #endif
 
     #ifdef SHOW_STARTING_POSITION
     /* -- to show starting position -- */
