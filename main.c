@@ -1286,6 +1286,23 @@ void unittest_generate_captures() {
     state.white_kings = 0;
     generate_captures(&state, &movelist);
     APPEND_CAPTURE(&expected, 23, 16);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    /* white on 16, jump to 7 */
+    state_init(&state);
+    state.moves = 1;
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    setup_start_position(state);
+
+    CLEAR(state.white, SQR(24));
+    CLEAR(state.black, SQR(16));
+    CLEAR(state.black, SQR(7));
+    PLACE(state.white, SQR(16));
+    print_board(state);
+    
+    generate_captures(&state, &movelist);
+    APPEND_CAPTURE(&expected, 16, 7);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);    
         
     EXIT_UNITTEST();
