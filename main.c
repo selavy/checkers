@@ -221,25 +221,12 @@ void __move_list_append_move(struct move_list_t* list, int src, int dst) {
 }
 #define move_list_append_move(list, src, dst) __move_list_append_move(&list, src, dst)
 void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
-    /* DEBUG */
-    /* printf("\nBEGIN MOVE_LIST_APPEND_CAPTURE\n"); */
-    /* printf("MOVE_LIST_APPEND_CAPTURE move list @ %p\n", list); */
-    /* printf("move_list_append_capture, move_list_num_moves = %d\n", move_list_num_moves(*list)); */
-    /* printf("Adding to movelist: "); print_move_list(*list); printf("\n"); */
-    /* printf("Adding move: "); print_move(*move); printf("\n"); */
-    /* GUBED */
     struct move_t* const movep = &(list->moves[move_list_num_moves(*list)]);
     ++list->njumps;
     movep->src = move->src;
     movep->dst = move->dst;
     memcpy(&(movep->path[0]), &(move->path[0]), sizeof(move->path[0]) * sizeof(move->path));
     movep->pathlen = move->pathlen;
-
-    /* DEBUG */
-    /* printf("After njumps: %d\n", list->njumps); */
-    /* printf("After movelist: "); print_move_list(*list); printf("\n"); */
-    /* printf("END MOVE_LIST_APPEND_CAPTURE\n\n");    */
-    /* GUBED */
 }
 #define move_list_append_capture(list, move) __move_list_append_capture(&(list), &(move))
 
@@ -343,9 +330,6 @@ void __setup_start_position(struct state_t* state) {
 void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     int i;
     struct move_t move;
-    /* DEBUG */
-    /* printf("add_to_move_list()\n"); */
-    /* GUBED */
     /* TODO: don't use move_list_append_capture, just do the appending manually */
     move.src = path[0];
     /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */    
@@ -440,17 +424,10 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             PLACE(nwhite, DOWN_LEFT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_DOWN_LEFT(square));
-            /* DEBUG */
-            /* printf("setting ret = 1 in down left\n"); */
-            /* GUBED */
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
-                /* DEBUG */
-                /* printf("adding jump down left to move list in multicapture_white %d -> %d\n", square + 1, JUMP_DOWN_LEFT(square) + 1); */
-                /* printf("number of jumps is now: %d\n", moves->njumps); */
-                /* GUBED */
             }
         }
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
@@ -2300,12 +2277,11 @@ int main(int argc, char **argv) {
     #ifdef PRINT_PERFT
     printf("%lu\n", perft(6));
     #endif
-    #ifdef PERFT
-    perft(6);
-    #endif
+//    #ifdef PERFT
+    perft(7);
+//    #endif
 
     /* unit tests */
-    unittest_generate_moves();
 #if DO_UNITTEST
     unittest_move_list_compare();
     unittest_move_list_sort();
