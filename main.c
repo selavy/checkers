@@ -1,13 +1,3 @@
-/* 
- * TODO: do you have to capture with the most number of jumps? Not clear from itsyourturn.com.
- * Definitely do have to in international checkers, but not sure for American checkers.
- * 
- * Right now I am enforcing that, but revisit this later, shouldn't be too hard to change, just will have
- * to update move_list_append_capture().
- */
-
-/* #define _SVID_SOURCE */
-/* #define _POSIX_C_SOURCE 200809L */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -165,6 +155,7 @@ void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
     }
     fprintf(file, "%d", move->dst + 1);
 }
+#define print_move(move) __print_move(stdout, &(move))
 
 /* move_list_compare: compare 2 move_lists for strict equality
  * 0  => equal
@@ -207,33 +198,6 @@ int move_list_init(struct move_list_t* list) {
     memset(&(list->moves[0]), 0, sizeof(list->moves[0]) * MAX_MOVES);
     return 0;
 }
-
-void __move_list_append_move(struct move_list_t* list, int src, int dst) {
-    struct move_t* const move = &(list->moves[move_list_num_moves(*list)]);
-    move->src = src;
-    move->dst = dst;
-    ++list->nmoves;
-}
-#define move_list_append_move(list, src, dst) __move_list_append_move(&list, src, dst)
-void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
-    struct move_t* const movep = &(list->moves[move_list_num_moves(*list)]);
-    ++list->njumps;
-    movep->src = move->src;
-    movep->dst = move->dst;
-    memcpy(&(movep->path[0]), &(move->path[0]), sizeof(move->path[0]) * sizeof(move->path));
-    movep->pathlen = move->pathlen;
-}
-#define move_list_append_capture(list, move) __move_list_append_capture(&(list), &(move))
-
-/* helper for unittests, don't use in real code */
-void APPEND_CAPTURE(struct move_list_t* list, int src, int dst) {
-    struct move_t move;
-    move_init(&move);
-    move.src = SQR(src);
-    move.dst = SQR(dst);
-    move_list_append_capture(*list, move);
-}
-
 void __print_move_list(FILE* file, struct move_list_t* list) {
     int i;
     const int moves = move_list_num_moves(*list);
@@ -249,6 +213,46 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
     }
 }
 #define print_move_list(list) __print_move_list(stdout, &(list));
+void __move_list_append_move(struct move_list_t* list, int src, int dst) {
+    struct move_t* const move = &(list->moves[move_list_num_moves(*list)]);
+    move->src = src;
+    move->dst = dst;
+    ++list->nmoves;
+}
+#define move_list_append_move(list, src, dst) __move_list_append_move(&list, src, dst)
+void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
+    /* DEBUG */
+    /* printf("\nBEGIN MOVE_LIST_APPEND_CAPTURE\n"); */
+    /* printf("MOVE_LIST_APPEND_CAPTURE move list @ %p\n", list); */
+    /* printf("move_list_append_capture, move_list_num_moves = %d\n", move_list_num_moves(*list)); */
+    /* printf("Adding to movelist: "); print_move_list(*list); printf("\n"); */
+    /* printf("Adding move: "); print_move(*move); printf("\n"); */
+    /* GUBED */
+    struct move_t* const movep = &(list->moves[move_list_num_moves(*list)]);
+    ++list->njumps;
+    movep->src = move->src;
+    movep->dst = move->dst;
+    memcpy(&(movep->path[0]), &(move->path[0]), sizeof(move->path[0]) * sizeof(move->path));
+    movep->pathlen = move->pathlen;
+
+    /* DEBUG */
+    /* printf("After njumps: %d\n", list->njumps); */
+    /* printf("After movelist: "); print_move_list(*list); printf("\n"); */
+    /* printf("END MOVE_LIST_APPEND_CAPTURE\n\n");    */
+    /* GUBED */
+}
+#define move_list_append_capture(list, move) __move_list_append_capture(&(list), &(move))
+
+/* helper for unittests, don't use in real code */
+void APPEND_CAPTURE(struct move_list_t* list, int src, int dst) {
+    struct move_t move;
+    move_init(&move);
+    move.src = SQR(src);
+    move.dst = SQR(dst);
+    move_list_append_capture(*list, move);
+}
+
+
 
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
@@ -265,7 +269,7 @@ int __white_move(struct state_t* state) {
 }
 #define white_move(state) (!black_move(state))
 
-void __print_board(FILE* file, struct state_t* state) {
+void __print_board(FILE* file, const struct state_t* state) {
 /*
     0-indexed square numbers
     ---------------------------------
@@ -339,27 +343,18 @@ void __setup_start_position(struct state_t* state) {
 void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     int i;
     struct move_t move;
-    boolean skip = FALSE;
-    const int nmoves = move_list_num_moves(*moves);
-
-    /* check that we aren't adding a capture that is shorter */
-    for (i = 0; i < nmoves; ++i) {
-        if (moves->moves[i].pathlen > len) {
-            skip = TRUE;
-            break;
-        }
+    /* DEBUG */
+    /* printf("add_to_move_list()\n"); */
+    /* GUBED */
+    /* TODO: don't use move_list_append_capture, just do the appending manually */
+    move.src = path[0];
+    /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */    
+    for (i = 1; i < len; ++i) {
+        move.path[i - 1] = path[i];
     }
-
-    if (!skip) {
-        /* TODO: don't use move_list_append_capture, just do the appending manually */
-        move.src = path[0];
-        for (i = 1; i < len; ++i) { /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */
-            move.path[i - 1] = path[i];
-        }
-        move.dst = path[len]; /* intentionally not len + 1 */
-        move.pathlen = len - 1;
-        move_list_append_capture(*moves, move);    
-    }
+    move.dst = path[len]; /* intentionally not len + 1 */
+    move.pathlen = len - 1;
+    move_list_append_capture(*moves, move);
 }
 
 int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
@@ -445,10 +440,17 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             PLACE(nwhite, DOWN_LEFT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_DOWN_LEFT(square));
+            /* DEBUG */
+            /* printf("setting ret = 1 in down left\n"); */
+            /* GUBED */
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
+                /* DEBUG */
+                /* printf("adding jump down left to move list in multicapture_white %d -> %d\n", square + 1, JUMP_DOWN_LEFT(square) + 1); */
+                /* printf("number of jumps is now: %d\n", moves->njumps); */
+                /* GUBED */
             }
         }
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
@@ -458,10 +460,17 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             PLACE(nwhite, DOWN_RIGHT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_DOWN_RIGHT(square));
+            /* DEBUG */
+            /* printf("setting ret = 1 in down right\n"); */
+            /* GUBED */            
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
+                /* DEBUG */
+                /* printf("adding jump down right to move list in multicapture_white %d -> %d\n", square + 1, JUMP_DOWN_RIGHT(square) + 1); */
+                /* printf("number of jumps is now: %d\n", moves->njumps); */
+                /* GUBED */
             }
         }
     }
@@ -503,10 +512,6 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     struct move_t move;
     move_init(&move);
     int path[10];
-    int i;
-    int maxlength;
-    int nmoves;
-    struct move_list_t tmp;
 
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
@@ -558,23 +563,50 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
         }
     } else {
         for (square = 0; square < SQUARES; ++square) {
+
+            /* DEBUG */
+            /* if (square == SQR(22)) { */
+            /*     if (OCCUPIED(WHITE(*state), square)) { */
+            /*         printf("square == SQR(22)\n"); */
+            /*         printf("19 is occupied by black? %s\n", !!(OCCUPIED(BLACK(*state), SQR(19))) ? "true":"false"); */
+            /*         printf("15 is occpuied? %s\n", !!(OCCUPIED(FULLBOARD(*state), SQR(15))) ? "true":"false"); */
+            /*         print_board(*state); */
+            /*     } else { */
+            /*         printf("BAD BAD BAD\n"); */
+            /*         print_board(*state); */
+            /*     } */
+            /* } */
+            /* GUBED */
+            
             if (OCCUPIED(WHITE(*state), square)) {
                 if (!BOTTOM(square) && !BOTTOM2(square)) {
                     if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                        /* DEBUG */
+                        /* printf("FOUND JUMP DOWN LEFT! %d -> %d\n", square + 1, JUMP_DOWN_LEFT(square) + 1); */
+                        /* GUBED */
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
-                            move.dst = JUMP_DOWN_LEFT(square);                        
+                            move.dst = JUMP_DOWN_LEFT(square);
+                            /* DEBUG */
+                            /* printf("ADDING JUMP DOWN LEFT! %d -> %d\n", move.src + 1, move.dst + 1); */
+                            /* GUBED */
                             move_list_append_capture(*moves, move);
                         }                    
                     }
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
+                        /* DEBUG */
+                        /* printf("FOUND JUMP DOWN RIGHT! %d -> %d\n", square + 1, JUMP_DOWN_RIGHT(square) + 1); */
+                        /* GUBED */
                         path[0] = square;
                         path[1] = JUMP_DOWN_RIGHT(square);
-                        if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), BLACK(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
+                        if (multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), BLACK(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square)) == 0) {
                             move.src = square;
-                            move.dst = JUMP_DOWN_RIGHT(square);                        
+                            move.dst = JUMP_DOWN_RIGHT(square);
+                            /* DEBUG */
+                            /* printf("ADDING JUMP DOWN RIGHT! %d -> %d\n", move.src + 1, move.dst + 1); */
+                            /* GUBED */                            
                             move_list_append_capture(*moves, move);
                         }                    
                     }
@@ -604,24 +636,6 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                 }
             }
         }        
-    }
-
-    nmoves = move_list_num_moves(*moves);
-    if (nmoves > 1) {
-        maxlength = 0;
-        for (i = 0; i < nmoves; ++i) {
-            if (moves->moves[i].pathlen > maxlength) {
-                maxlength = moves->moves[i].pathlen;
-            }
-        }
-        move_list_init(&tmp);
-        for (i = 0; i < nmoves; ++i) {
-            if (moves->moves[i].pathlen == maxlength) {
-                move_list_append_capture(tmp, moves->moves[i]);
-            }
-        }
-        move_list_init(moves);
-        memcpy(moves, &tmp, sizeof(*moves));
     }
     
     return 0;
@@ -999,8 +1013,10 @@ void unittest_generate_moves() {
     struct state_t state;
     struct move_list_t movelist;
     struct move_list_t expected;
+    struct move_t move;
     ENTER_UNITTEST();
 
+    #if 0
     /* black on 14 */
     state_init(&state);
     move_list_init(&movelist);
@@ -1107,7 +1123,52 @@ void unittest_generate_moves() {
     generate_moves(&state, &movelist);
     move_list_append_move(expected, SQR(4), SQR(7));
     move_list_append_move(expected, SQR(4), SQR(8));
-    UNITTEST_ASSERT_MOVELIST(movelist, expected);    
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
+
+    #endif
+
+    /* START HERE */
+    state_init(&state);
+    setup_start_position(state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    move_init(&move);
+    move.src = SQR(11);
+    move.dst = SQR(15);
+    make_move(&state, &move);
+    ++state.moves;
+    move_init(&move);
+    move.src = SQR(23);
+    move.dst = SQR(20);
+    make_move(&state, &move);
+    ++state.moves;
+    move_init(&move);    
+    move.src = SQR(7);
+    move.dst = SQR(11);
+    make_move(&state, &move);
+    ++state.moves;
+    move_init(&move);
+    move.src = SQR(28);
+    move.dst = SQR(23);
+    make_move(&state, &move);
+    ++state.moves;
+    move_init(&move);
+    move.src = SQR(15);
+    move.dst = SQR(19);
+    make_move(&state, &move);
+    ++state.moves;
+    move_init(&move);
+    /* DEBUG */
+    /* print_board(state); */
+    /* printf("MOVELIST @ %p\n", &movelist); */
+    /* GUBED */
+    generate_captures(&state, &movelist);
+    /* DEBUG */
+    /* printf("GENERATED CAPTURES MOVELIST @ %p\n", &movelist); */
+    /* printf("AFTER, nmoves = %d\n", movelist.nmoves); */
+    /* printf("AFTER, njumps = %d\n", movelist.njumps); */
+    /* GUBED */
+    print_move_list(movelist); printf("\n");
     
     EXIT_UNITTEST();
 }
@@ -1118,8 +1179,6 @@ void unittest_generate_captures() {
     struct move_list_t expected;
     ENTER_UNITTEST();
 
-    #if 0
-    
     /* black on 14 */
     state_init(&state);
     move_list_init(&movelist);
@@ -1319,8 +1378,6 @@ void unittest_generate_captures() {
     APPEND_CAPTURE(&expected, 23, 16);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
-    #endif
-    
     /* white on 16, jump to 7 */
     state_init(&state);
     move_list_init(&movelist);
@@ -2243,20 +2300,23 @@ int main(int argc, char **argv) {
     #ifdef PRINT_PERFT
     printf("%lu\n", perft(6));
     #endif
-    //#ifdef PERFT
+    #ifdef PERFT
     perft(6);
-    //#endif
+    #endif
 
     /* unit tests */
-    #if 0
+    unittest_generate_moves();
+#if DO_UNITTEST
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
     unittest_generate_captures();
     unittest_generate_multicaptures();
     unittest_make_move();
+#if DO_PERFT
     unittest_perft();
-    #endif
+#endif
+#endif
 
     #ifdef SHOW_STARTING_POSITION
     /* -- to show starting position -- */
