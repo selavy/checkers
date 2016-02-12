@@ -437,17 +437,10 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             PLACE(nwhite, DOWN_RIGHT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_DOWN_RIGHT(square));
-            /* DEBUG */
-            /* printf("setting ret = 1 in down right\n"); */
-            /* GUBED */            
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len);
-                /* DEBUG */
-                /* printf("adding jump down right to move list in multicapture_white %d -> %d\n", square + 1, JUMP_DOWN_RIGHT(square) + 1); */
-                /* printf("number of jumps is now: %d\n", moves->njumps); */
-                /* GUBED */
             }
         }
     }
@@ -540,50 +533,23 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
         }
     } else {
         for (square = 0; square < SQUARES; ++square) {
-
-            /* DEBUG */
-            /* if (square == SQR(22)) { */
-            /*     if (OCCUPIED(WHITE(*state), square)) { */
-            /*         printf("square == SQR(22)\n"); */
-            /*         printf("19 is occupied by black? %s\n", !!(OCCUPIED(BLACK(*state), SQR(19))) ? "true":"false"); */
-            /*         printf("15 is occpuied? %s\n", !!(OCCUPIED(FULLBOARD(*state), SQR(15))) ? "true":"false"); */
-            /*         print_board(*state); */
-            /*     } else { */
-            /*         printf("BAD BAD BAD\n"); */
-            /*         print_board(*state); */
-            /*     } */
-            /* } */
-            /* GUBED */
-            
             if (OCCUPIED(WHITE(*state), square)) {
                 if (!BOTTOM(square) && !BOTTOM2(square)) {
                     if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
-                        /* DEBUG */
-                        /* printf("FOUND JUMP DOWN LEFT! %d -> %d\n", square + 1, JUMP_DOWN_LEFT(square) + 1); */
-                        /* GUBED */
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
                             move.src = square;
                             move.dst = JUMP_DOWN_LEFT(square);
-                            /* DEBUG */
-                            /* printf("ADDING JUMP DOWN LEFT! %d -> %d\n", move.src + 1, move.dst + 1); */
-                            /* GUBED */
                             move_list_append_capture(*moves, move);
                         }                    
                     }
                     if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
-                        /* DEBUG */
-                        /* printf("FOUND JUMP DOWN RIGHT! %d -> %d\n", square + 1, JUMP_DOWN_RIGHT(square) + 1); */
-                        /* GUBED */
                         path[0] = square;
                         path[1] = JUMP_DOWN_RIGHT(square);
                         if (multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), BLACK(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square)) == 0) {
                             move.src = square;
                             move.dst = JUMP_DOWN_RIGHT(square);
-                            /* DEBUG */
-                            /* printf("ADDING JUMP DOWN RIGHT! %d -> %d\n", move.src + 1, move.dst + 1); */
-                            /* GUBED */                            
                             move_list_append_capture(*moves, move);
                         }                    
                     }
@@ -857,44 +823,47 @@ void print_game_ledger(struct move_t* game, int nmoves) {
     }
     printf("]\n");
 }
+#ifdef PRINT_LEDGER
 uint64_t __perft_helper(int depth, const struct state_t* in_state, struct move_t* game) {
+#else
+uint64_t __perft_helper(int depth, const struct state_t* in_state) {
+#endif
     struct state_t state;
     struct move_list_t movelist;
     int i;
     int nmoves;
     int64_t nodes = 0;
-    /* const struct move_t* move; /\* TODO: remove *\/ */
-    /* int j;               /\* TODO: remove *\/ */
+    #ifdef PRINT_LEDGER
     struct move_t cgame[NMOVES]; /* TODO: remove printing entire game ledger */
+    #endif
     
     if (depth == 0) return 1;
+    #ifdef PRINT_LEDGER
     memcpy(&cgame[0], game, sizeof(cgame[0]) * NMOVES); /* TODO: remove print entire game ledger */
+    #endif
     move_list_init(&movelist);
     get_moves(in_state, &movelist);
     nmoves = move_list_num_moves(movelist);
     if (depth == 1) {
+        #ifdef PRINT_LEDGER
         for (i = 0; i < nmoves; ++i) {
             memcpy(&cgame[in_state->moves], &movelist.moves[i], sizeof(movelist.moves[i]));
             print_game_ledger(&cgame[0], in_state->moves + 1);
         }
-        
-        /* for (i = 0; i < nmoves; ++i) { */
-        /*     move = &(movelist.moves[i]); */
-        /*     /\* printf("%d -> %d\n", CONV(move->src), CONV(move->dst)); *\/ */
-        /*     printf("%d", CONV(move->src)); */
-        /*     for (j = 0; j < move->pathlen; ++j) { */
-        /*         printf(" -> %d", CONV(move->path[j])); */
-        /*     } */
-        /*     printf(" -> %d\n", CONV(move->dst)); */
-        /* } */
+        #endif
         return nmoves;
     }
     for (i = 0; i < nmoves; ++i) {
         memcpy(&state, in_state, sizeof(state));
         make_move(&state, &(movelist.moves[i]));
-        memcpy(&cgame[in_state->moves], &movelist.moves[i], sizeof(movelist.moves[i]));        
+        #ifdef PRINT_LEDGER
+        memcpy(&cgame[in_state->moves], &movelist.moves[i], sizeof(movelist.moves[i]));
+        #endif
         ++state.moves;
+        #ifdef PRINT_LEDGER
         nodes += __perft_helper(depth - 1, &state, &cgame[0]);
+        #endif
+        nodes += __perft_helper(depth - 1, &state);
     }
     return nodes;
 }
@@ -902,8 +871,12 @@ uint64_t perft(int depth) {
     struct state_t state;
     state_init(&state);
     setup_start_position(state);
+    #ifdef PRINT_LEDGER
     struct move_t game[NMOVES];
     return __perft_helper(depth, &state, &game[0]);
+    #else
+    return __perft_helper(depth, &state);
+    #endif
 }
 
 /* --- Begin Unit Tests --- */
@@ -1135,16 +1108,7 @@ void unittest_generate_moves() {
     make_move(&state, &move);
     ++state.moves;
     move_init(&move);
-    /* DEBUG */
-    /* print_board(state); */
-    /* printf("MOVELIST @ %p\n", &movelist); */
-    /* GUBED */
     generate_captures(&state, &movelist);
-    /* DEBUG */
-    /* printf("GENERATED CAPTURES MOVELIST @ %p\n", &movelist); */
-    /* printf("AFTER, nmoves = %d\n", movelist.nmoves); */
-    /* printf("AFTER, njumps = %d\n", movelist.njumps); */
-    /* GUBED */
     print_move_list(movelist); printf("\n");
     
     EXIT_UNITTEST();
@@ -2225,14 +2189,14 @@ void unittest_perft() {
         ,7361
         ,36768
         ,179740
-        /* ,845931 */
-        /* ,3963680 */
-        /* ,18391564 */
-        /* ,85242128 */
-        /* ,388623673 */
-        /* ,1766623630 */
-        /* ,7978439499 */
-        /* ,36263167175 */
+        ,845931
+        ,3963680
+        ,18391564
+        ,85242128
+        ,388623673
+        ,1766623630
+        ,7978439499
+        ,36263167175
         /* ,165629569428 */
         /* ,758818810990 */
         /* ,3493881706141 */
@@ -2258,7 +2222,7 @@ void unittest_perft() {
         gettimeofday(&end, 0);
         
         printf("perft(%d) = %lu in %lu ms.\n", depth, nodes, ((end.tv_sec * 1000000UL + end.tv_usec) - (start.tv_sec * 1000000UL + start.tv_usec)) / 1000UL);
-        /* UNITTEST_ASSERT_MSG(nodes, expected[depth], "%lu"); */
+        UNITTEST_ASSERT_MSG(nodes, expected[depth], "%lu");
     }
 
     EXIT_UNITTEST();
@@ -2268,18 +2232,18 @@ void unittest_perft() {
 
 int main(int argc, char **argv) {
     /* struct state_t state; */
-    /* struct move_list_t moves; */    
+    /* struct move_list_t moves;     */
     /* state_init(&state); */
-    /* move_list_init(&moves); */    
+    /* move_list_init(&moves);     */
     /* print_board(state); */
     /* int depth; */
     
     #ifdef PRINT_PERFT
     printf("%lu\n", perft(6));
     #endif
-//    #ifdef PERFT
+    #ifdef PERFT
     perft(7);
-//    #endif
+    #endif
 
     /* unit tests */
 #if DO_UNITTEST
@@ -2289,10 +2253,10 @@ int main(int argc, char **argv) {
     unittest_generate_captures();
     unittest_generate_multicaptures();
     unittest_make_move();
-#if DO_PERFT
+#endif
+//#if DO_PERFT
     unittest_perft();
-#endif
-#endif
+//#endif    
 
     #ifdef SHOW_STARTING_POSITION
     /* -- to show starting position -- */
@@ -2301,11 +2265,11 @@ int main(int argc, char **argv) {
     print_board(state);
     #endif
 
-    #ifdef PERFT
+#ifdef PERFT
     for (depth = 0; depth < 12; ++depth) {
         printf("moves at depth %d = %lu\n", depth, perft(depth));
     }
-    #endif
+#endif
 
     /* printf("Bye.\n"); */
     return 0;
