@@ -845,7 +845,28 @@ int _CC[] = {
 #define CONV(sqr) _CC[(sqr)]
 /* #define CONV(sqr) (sqr) */
 
-uint64_t __perft_helper(int depth, const struct state_t* in_state) {
+#define NMOVES 15
+
+void ledger_print_move(struct move_t* move) {
+    int i = 0;
+    printf("%d", CONV(move->src));
+    for (i = 0; i < move->pathlen; ++i) {
+        printf(" -> %d", CONV(move->path[i]));
+    }
+    printf(" -> %d", CONV(move->dst));
+}
+void print_game_ledger(struct move_t* game, int nmoves) {
+    int i;
+    printf("[");
+    ledger_print_move(game);
+    ++game;
+    for (i = 1; i < nmoves; ++i) {
+        printf(", ");
+        ledger_print_move(game++);
+    }
+    printf("]\n");
+}
+uint64_t __perft_helper(int depth, const struct state_t* in_state, struct move_t* game) {
     struct state_t state;
     struct move_list_t movelist;
     int i;
@@ -853,12 +874,19 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     int64_t nodes = 0;
     /* const struct move_t* move; /\* TODO: remove *\/ */
     /* int j;               /\* TODO: remove *\/ */
+    struct move_t cgame[NMOVES]; /* TODO: remove printing entire game ledger */
     
     if (depth == 0) return 1;
+    memcpy(&cgame[0], game, sizeof(cgame[0]) * NMOVES); /* TODO: remove print entire game ledger */
     move_list_init(&movelist);
     get_moves(in_state, &movelist);
     nmoves = move_list_num_moves(movelist);
     if (depth == 1) {
+        for (i = 0; i < nmoves; ++i) {
+            memcpy(&cgame[in_state->moves], &movelist.moves[i], sizeof(movelist.moves[i]));
+            print_game_ledger(&cgame[0], in_state->moves + 1);
+        }
+        
         /* for (i = 0; i < nmoves; ++i) { */
         /*     move = &(movelist.moves[i]); */
         /*     /\* printf("%d -> %d\n", CONV(move->src), CONV(move->dst)); *\/ */
@@ -873,17 +901,18 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     for (i = 0; i < nmoves; ++i) {
         memcpy(&state, in_state, sizeof(state));
         make_move(&state, &(movelist.moves[i]));
+        memcpy(&cgame[in_state->moves], &movelist.moves[i], sizeof(movelist.moves[i]));        
         ++state.moves;
-        nodes += __perft_helper(depth - 1, &state);
+        nodes += __perft_helper(depth - 1, &state, &cgame[0]);
     }
     return nodes;
 }
-
 uint64_t perft(int depth) {
     struct state_t state;
     state_init(&state);
     setup_start_position(state);
-    return __perft_helper(depth, &state);
+    struct move_t game[NMOVES];
+    return __perft_helper(depth, &state, &game[0]);
 }
 
 /* --- Begin Unit Tests --- */
@@ -2212,14 +2241,14 @@ int main(int argc, char **argv) {
     /* int depth; */
     
     #ifdef PRINT_PERFT
-    printf("%lu\n", perft(5));
+    printf("%lu\n", perft(6));
     #endif
-    #ifdef PERFT
+    //#ifdef PERFT
     perft(6);
-    #endif
+    //#endif
 
     /* unit tests */
-//    #if 0
+    #if 0
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
@@ -2227,7 +2256,7 @@ int main(int argc, char **argv) {
     unittest_generate_multicaptures();
     unittest_make_move();
     unittest_perft();
-//    #endif
+    #endif
 
     #ifdef SHOW_STARTING_POSITION
     /* -- to show starting position -- */
