@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <sys/time.h>
 
+/* #define PRINT_LEDGER */
+
 #define MAX_PATH 8
 #define MAX_MOVES 32
 #define COLUMNS 8
@@ -862,8 +864,9 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
         ++state.moves;
         #ifdef PRINT_LEDGER
         nodes += __perft_helper(depth - 1, &state, &cgame[0]);
-        #endif
+        #else
         nodes += __perft_helper(depth - 1, &state);
+        #endif        
     }
     return nodes;
 }
@@ -2194,9 +2197,9 @@ void unittest_perft() {
         ,18391564
         ,85242128
         ,388623673
-        ,1766623630
-        ,7978439499
-        ,36263167175
+        /* ,1766623630 */
+        /* ,7978439499 */
+        /* ,36263167175 */
         /* ,165629569428 */
         /* ,758818810990 */
         /* ,3493881706141 */
@@ -2231,22 +2234,16 @@ void unittest_perft() {
 /* --- End Unit Tests --- */
 
 int main(int argc, char **argv) {
-    /* struct state_t state; */
-    /* struct move_list_t moves;     */
-    /* state_init(&state); */
-    /* move_list_init(&moves);     */
-    /* print_board(state); */
-    /* int depth; */
+#ifdef PRINT_PERFT
+    printf("%lu\n", perft(12));
+#endif
     
-    #ifdef PRINT_PERFT
-    printf("%lu\n", perft(6));
-    #endif
-    #ifdef PERFT
-    perft(7);
-    #endif
+#ifdef PRINT_LEDGER
+    perft(12);
+#endif
 
-    /* unit tests */
 #if DO_UNITTEST
+    /* unit tests */    
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
@@ -2254,18 +2251,24 @@ int main(int argc, char **argv) {
     unittest_generate_multicaptures();
     unittest_make_move();
 #endif
+    
 //#if DO_PERFT
     unittest_perft();
 //#endif    
 
-    #ifdef SHOW_STARTING_POSITION
+#ifdef SHOW_STARTING_POSITION
     /* -- to show starting position -- */
+    struct state_t state;
+    struct move_list_t moves;
+    state_init(&state);
+    move_list_init(&moves);    
     state_init(&state);
     setup_start_position(state);
     print_board(state);
-    #endif
+#endif
 
 #ifdef PERFT
+    int depth;
     for (depth = 0; depth < 12; ++depth) {
         printf("moves at depth %d = %lu\n", depth, perft(depth));
     }
@@ -2273,4 +2276,5 @@ int main(int argc, char **argv) {
 
     /* printf("Bye.\n"); */
     return 0;
+
 }
