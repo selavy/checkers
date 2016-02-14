@@ -1,9 +1,11 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <regex.h>
 
 //#define PRINT_LEDGER
 
@@ -2233,6 +2235,54 @@ void unittest_perft() {
 
 /* --- End Unit Tests --- */
 
+/* --- Begin user input functions --- */
+int valid_input(const char* line) {
+    regex_t preg;
+    const size_t nmatch = 11;
+    regmatch_t pmatch[11];
+    int i;
+    
+    if (regcomp(&preg, "([0-9]+)([ ]*-[ ]*([0-9]+))([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?", REG_EXTENDED) != 0) {
+        return -1;
+    }
+    printf("regexec compiled successfully\n");
+    if (regexec(&preg, line, nmatch, &pmatch[0], 0) != 0) {
+        return -2;
+    }
+
+    for (i = 0; i < nmatch; ++i) {
+        if (pmatch[i].rm_so == -1) break;
+        printf("%.*s\n", pmatch[i].rm_eo - pmatch[i].rm_so, &line[pmatch[i].rm_so]);
+    }
+    
+    return 0;
+}
+
+int read_move(FILE* input, struct move_t* move) {
+    char* line = 0;
+    size_t n = 0;
+    ssize_t ret;
+    
+    if ((ret = getline(&line, &n, input)) < 1) {
+        return -1;
+    } else {
+        if (line[ret - 1] == '\n') { // chomp(line)
+            line[ret - 1] = 0;
+        }
+        move_init(move);
+        printf("Input: \"%s\"\n", line);
+        if (valid_input(line) == 0) {
+            printf("line is valid\n");
+        } else {
+            printf("line is invalid\n");
+        }
+
+        free(line);
+        return 0;
+    }
+}
+/* --- End   user input functions --- */
+
 int main(int argc, char **argv) {
 //    #define DO_UNITTEST
     
@@ -2247,12 +2297,10 @@ int main(int argc, char **argv) {
     unittest_make_move();
     unittest_perft();    
 #elif defined(SHOW_STARTING_POSITION)
-    /* -- to show starting position -- */
     struct state_t state;
     struct move_list_t moves;
     state_init(&state);
     move_list_init(&moves);    
-    state_init(&state);
     setup_start_position(state);
     print_board(state);
 #elif defined(PERFT)
@@ -2260,7 +2308,17 @@ int main(int argc, char **argv) {
     for (depth = 0; depth < 12; ++depth) {
         printf("moves at depth %d = %lu\n", depth, perft(depth));
     }
-#else
+#else /* play game */
+
+    struct state_t state;
+    struct move_t move;
+    state_init(&state);
+    setup_start_position(state);
+    print_board(state);
+
+    printf("Enter move: ");
+    read_move(stdin, &move);
+    
     printf("Bye.\n");    
 #endif
     return 0;
