@@ -1,11 +1,11 @@
-#include <stdio.h>
+ #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
 #include <sys/time.h>
 
-/* #define PRINT_LEDGER */
+//#define PRINT_LEDGER
 
 #define MAX_PATH 8
 #define MAX_MOVES 32
@@ -2194,9 +2194,9 @@ void unittest_perft() {
         ,179740
         ,845931
         ,3963680
-        ,18391564
-        ,85242128
-        ,388623673
+        /* ,18391564 */
+        /* ,85242128 */
+        /* ,388623673 */
         /* ,1766623630 */
         /* ,7978439499 */
         /* ,36263167175 */
@@ -2234,29 +2234,19 @@ void unittest_perft() {
 /* --- End Unit Tests --- */
 
 int main(int argc, char **argv) {
-#ifdef PRINT_PERFT
-    printf("%lu\n", perft(12));
-#endif
+//    #define DO_UNITTEST
     
-#ifdef PRINT_LEDGER
-    perft(12);
-#endif
-
-#if DO_UNITTEST
-    /* unit tests */    
+#if defined(PRINT_LEDGER)
+    perft(8);
+#elif defined(DO_UNITTEST)
     unittest_move_list_compare();
     unittest_move_list_sort();
     unittest_generate_moves();
     unittest_generate_captures();
     unittest_generate_multicaptures();
     unittest_make_move();
-#endif
-    
-//#if DO_PERFT
-    unittest_perft();
-//#endif    
-
-#ifdef SHOW_STARTING_POSITION
+    unittest_perft();    
+#elif defined(SHOW_STARTING_POSITION)
     /* -- to show starting position -- */
     struct state_t state;
     struct move_list_t moves;
@@ -2265,16 +2255,13 @@ int main(int argc, char **argv) {
     state_init(&state);
     setup_start_position(state);
     print_board(state);
-#endif
-
-#ifdef PERFT
+#elif defined(PERFT)
     int depth;
     for (depth = 0; depth < 12; ++depth) {
         printf("moves at depth %d = %lu\n", depth, perft(depth));
     }
+#else
+    printf("Bye.\n");    
 #endif
-
-    /* printf("Bye.\n"); */
     return 0;
-
 }
