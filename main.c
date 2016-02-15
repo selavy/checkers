@@ -102,15 +102,20 @@ struct state_t {
     uint8_t moves;
 };
 
-/* moves are 1-indexed so 0 can indicate that the path is empty */
 struct move_t {
     uint8_t src; /* square started on */
     uint8_t dst; /* square ended on */
     uint8_t path[MAX_PATH]; /* path traveled if this was a multi-jump */
     uint8_t pathlen;
 };
-/* -- end types -- */
 
+struct move_list_t {
+    struct move_t moves[MAX_MOVES];
+    int njumps; /* number of jumps */    
+    int nmoves; /* number of regular moves */
+};
+
+/* -- end types -- */
 boolean is_noncapture(const struct move_t* move) {
     return (move->pathlen == 0)
         && (move->dst == UP_LEFT(move->src)
@@ -118,13 +123,10 @@ boolean is_noncapture(const struct move_t* move) {
             || move->dst == DOWN_LEFT(move->src)
             || move->dst == DOWN_RIGHT(move->src));
 }
-
 boolean is_capture(const struct move_t* move) {
     return !is_noncapture(move);
 }
-
 #define move_init(move) memset(move, 0, sizeof(*move))
-
 /* move_compare: compare 2 moves for equality
  * 0  => equal
  * 1  => lhs > rhs
@@ -144,13 +146,7 @@ int move_compare(struct move_t* lhs, struct move_t* rhs) {
     return ret;
 }
 
-struct move_list_t {
-    struct move_t moves[MAX_MOVES];
-    int njumps; /* number of jumps */    
-    int nmoves; /* number of regular moves */
-};
 #define move_list_num_moves(list) ((list).njumps + (list).nmoves)
-
 /* TODO: print captures with 'x' between intead of '-' */
 void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
     int i;
@@ -161,7 +157,6 @@ void __print_move(FILE* file, struct move_t* move /*, boolean is_capture */) {
     fprintf(file, "%d", move->dst + 1);
 }
 #define print_move(move) __print_move(stdout, &(move))
-
 /* move_list_compare: compare 2 move_lists for strict equality
  * 0  => equal
  * 1  => lhs > rhs
@@ -185,18 +180,15 @@ int move_list_compare(struct move_list_t* lhs, struct move_list_t* rhs) {
     }
     return ret;
 }
-
 int __move_compare_generic(const void* lhs, const void* rhs) {
     return move_compare((struct move_t*)lhs, (struct move_t*)rhs);
 }
-
 void move_list_sort(struct move_list_t* list) {
     int nmoves = move_list_num_moves(*list);
     if (nmoves != 0) {
         qsort(&(list->moves[0]), nmoves, sizeof(list->moves[0]), &__move_compare_generic);
     }
 }
-
 int move_list_init(struct move_list_t* list) {
     list->njumps = 0;
     list->nmoves = 0;
@@ -234,7 +226,6 @@ void __move_list_append_capture(struct move_list_t* list, struct move_t* move) {
     movep->pathlen = move->pathlen;
 }
 #define move_list_append_capture(list, move) __move_list_append_capture(&(list), &(move))
-
 /* helper for unittests, don't use in real code */
 void APPEND_CAPTURE(struct move_list_t* list, int src, int dst) {
     struct move_t move;
@@ -243,24 +234,18 @@ void APPEND_CAPTURE(struct move_list_t* list, int src, int dst) {
     move.dst = SQR(dst);
     move_list_append_capture(*list, move);
 }
-
-
-
 void __state_init(struct state_t* state) {
     memset(state, 0, sizeof(*state));
 }
 #define state_init(state) do { memset(state, 0, sizeof(*state)); } while(0)
-
 int __black_move(struct state_t* state) {
     return (state->moves & 1) == 0;
 }
 #define black_move(state) (((state).moves & 1) == 0)
-
 int __white_move(struct state_t* state) {
     return state->moves & 1;
 }
 #define white_move(state) (!black_move(state))
-
 void __print_board(FILE* file, const struct state_t* state) {
 /*
     0-indexed square numbers
@@ -317,7 +302,6 @@ void __print_board(FILE* file, const struct state_t* state) {
     fprintf(file, "\n    ---------------------------------\n");       
 }
 #define print_board(state) __print_board(stdout, &state);
-
 void __setup_start_position(struct state_t* state) {
     state->white = 4293918720;
     state->black = 4095;
@@ -331,7 +315,6 @@ void __setup_start_position(struct state_t* state) {
     (state).white_kings = 0;                    \
     (state).black_kings = 0;                    \
     (state).moves = 0;
-
 void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     int i;
     struct move_t move;
@@ -345,7 +328,6 @@ void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     move.pathlen = len - 1;
     move_list_append_capture(*moves, move);
 }
-
 int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
@@ -414,7 +396,6 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
     
     return ret;
 }
-
 int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
@@ -481,7 +462,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
 
     return ret;
 }
-
 int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     square_t square;
     struct move_t move;
@@ -588,8 +568,6 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     
     return 0;
 }
-
-
 int generate_moves(const struct state_t* state, struct move_list_t* moves) {
     square_t square;
     if (black_move(*state)) {
@@ -641,7 +619,6 @@ int generate_moves(const struct state_t* state, struct move_list_t* moves) {
     }
     return 0;
 }
-
 int get_moves(const struct state_t* state, struct move_list_t* moves) {
     generate_captures(state, moves);
     if (moves->njumps == 0) {
@@ -649,8 +626,6 @@ int get_moves(const struct state_t* state, struct move_list_t* moves) {
     }
     return 0;
 }
-
-
 /* returns -1 on error */
 int jumped_square(int src, int dst) {
     if (dst == JUMP_UP_LEFT(src)) {
@@ -665,7 +640,6 @@ int jumped_square(int src, int dst) {
         return -1;
     }
 }
-
 void make_move(struct state_t* state, const struct move_t* move) {
     int jumped;
     int i;
@@ -768,7 +742,7 @@ void make_move(struct state_t* state, const struct move_t* move) {
         }        
     }
 }
-
+#ifdef PRINT_LEDGER
 int _CC[] = {
     4,
     3,
@@ -803,12 +777,8 @@ int _CC[] = {
     30,
     29
 };
-
 #define CONV(sqr) _CC[(sqr)]
-/* #define CONV(sqr) (sqr) */
-
 #define NMOVES 15
-
 void ledger_print_move(struct move_t* move) {
     int i = 0;
     printf("%d", CONV(move->src));
@@ -828,6 +798,7 @@ void print_game_ledger(struct move_t* game, int nmoves) {
     }
     printf("]\n");
 }
+#endif
 #ifdef PRINT_LEDGER
 uint64_t __perft_helper(int depth, const struct state_t* in_state, struct move_t* game) {
 #else
@@ -916,7 +887,6 @@ void unittest_move_list_compare() {
 
     EXIT_UNITTEST();
 }
-
 void unittest_move_list_sort() {
     struct move_list_t lhs;
     struct move_list_t rhs;
@@ -964,7 +934,6 @@ void unittest_move_list_sort() {
 
     EXIT_UNITTEST();
 }
-
 void unittest_generate_moves() {
     struct state_t state;
     struct move_list_t movelist;
@@ -1880,7 +1849,6 @@ void unittest_generate_multicaptures() {
 
     EXIT_UNITTEST();
 }
-
 void unittest_make_move() {
     struct state_t state;
     struct move_t move;
@@ -2236,6 +2204,7 @@ void unittest_perft() {
 
 /* --- End Unit Tests --- */
 
+/* --- Begin user input functions --- */
 int parse_int(const char* line, int sz) {
     int ret = 0;
     int multiplier = 1;
@@ -2248,8 +2217,6 @@ int parse_int(const char* line, int sz) {
     }
 	return ret;
 }
-
-/* --- Begin user input functions --- */
 int valid_input(const char* line, struct move_t* move) {
     regex_t preg;
     const size_t nmatch = 11;
@@ -2332,6 +2299,7 @@ int ask_to_quit() {
     }
     return ret;
 }
+
 /* --- End   user input functions --- */
 
 int main(int argc, char **argv) {
