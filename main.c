@@ -708,7 +708,7 @@ void make_move(struct state_t* state, const struct move_t* move) {
             }
         } else {
             CLEAR(state->black, move->src);
-            if (TOP(move->dst)) {
+            if (unlikely(TOP(move->dst))) {
                 PLACE(state->black_kings, move->dst);
             } else {
                 PLACE(state->black, move->dst);
@@ -756,7 +756,7 @@ void make_move(struct state_t* state, const struct move_t* move) {
             }
         } else {
             CLEAR(state->white, move->src);
-            if (BOTTOM(move->dst)) {
+            if (unlikely(BOTTOM(move->dst))) {
                 PLACE(state->white_kings, move->dst);
             } else {
                 PLACE(state->white, move->dst);
