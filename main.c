@@ -313,27 +313,22 @@ void __setup_start_position(struct state_t* state) {
     (state).white_kings = 0;                    \
     (state).black_kings = 0;                    \
     (state).moves = 0;
-void add_to_move_list(struct move_list_t* moves, int* path, int len) {
-    int i;
-    struct move_t move;
-    /* TODO: don't use move_list_append_capture, just do the appending manually */
-    move.src = path[0];
-    /* TODO: switch to memcpy(&(move.path[0]), path[1], sizeof(path[1]) * len - 1); */    
-    for (i = 1; i < len; ++i) {
-        move.path[i - 1] = path[i];
-    }
-    /* if (len > 1) { */
-    /*     memcpy(&(move.path[0]), &path[1], sizeof(move.path[0]) * len); */
-    /* } */
-    move.dst = path[len]; /* intentionally not len + 1 */
-    move.pathlen = len - 1;
-    move_list_append_capture(*moves, move);
+void add_to_move_list(struct move_list_t* moves, const uint8_t* path, int len) {
+    /* precondition: len > 2 */
+    assert(len > 2);
+    const int nmoves = move_list_num_moves(*moves);
+    struct move_t* const movep = &(moves->moves[nmoves]);
+    ++moves->njumps;
+    movep->src = path[0];
+    movep->dst = path[len-1];
+    memcpy(&movep->path[0], &path[1], sizeof(path[1]) * len);
+    movep->pathlen = len - 2;
 }
-int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
+int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, uint8_t* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
-    int square = path[len - 1];
+    uint8_t square = path[len - 1];
 
     if (!TOP(square) && !TOP2(square)) {
         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
@@ -347,7 +342,7 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             path[len] = JUMP_UP_LEFT(square);
 
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }
         }
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(white, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
@@ -361,7 +356,7 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             path[len] = JUMP_UP_RIGHT(square);
         
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }
         }
     }
@@ -377,7 +372,7 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }
         }
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(white, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
@@ -390,18 +385,18 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }            
         }
     }
     
     return ret;
 }
-int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, int* path, int len, boolean is_king) {
+int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, uint8_t* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
-    int square = path[len - 1];
+    uint8_t square = path[len - 1];
 
     if (!BOTTOM(square) && !BOTTOM2(square)) {
         if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
@@ -414,7 +409,7 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }
         }
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
@@ -427,7 +422,7 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }
         }
     }
@@ -443,7 +438,7 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_UP_LEFT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }
         }
         if (!RIGHT(square) && !RIGHT2(square) && OCCUPIED(black, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
@@ -456,7 +451,7 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             ret = 1;
             path[len] = JUMP_UP_RIGHT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
-                add_to_move_list(moves, path, len);
+                add_to_move_list(moves, path, len + 1);
             }            
         }
     }
@@ -467,7 +462,7 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     square_t square;
     struct move_t move;
     move_init(&move);
-    int path[10];
+    uint8_t path[10];
 
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
@@ -2128,7 +2123,7 @@ void unittest_perft() {
         ,179740
         ,845931
         ,3963680
-        /* ,18391564 */
+        ,18391564
         /* ,85242128 */
         /* ,388623673 */
         /* ,1766623630 */
