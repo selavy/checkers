@@ -200,12 +200,10 @@ void __print_move_list(FILE* file, struct move_list_t* list) {
     const int moves = move_list_num_moves(*list);
     if (moves > 0) {
         __print_move(file, &(list->moves[0]));
-
         for (i = 1; i < moves; ++i) {
             fprintf(file, ", ");
         __print_move(file, &(list->moves[i]));
         }
-
         fprintf(file, ", moves: %d, jumps: %d", list->nmoves, list->njumps);
     }
 }
@@ -324,6 +322,9 @@ void add_to_move_list(struct move_list_t* moves, int* path, int len) {
     for (i = 1; i < len; ++i) {
         move.path[i - 1] = path[i];
     }
+    /* if (len > 1) { */
+    /*     memcpy(&(move.path[0]), &path[1], sizeof(move.path[0]) * len); */
+    /* } */
     move.dst = path[len]; /* intentionally not len + 1 */
     move.pathlen = len - 1;
     move_list_append_capture(*moves, move);
@@ -938,10 +939,8 @@ void unittest_generate_moves() {
     struct state_t state;
     struct move_list_t movelist;
     struct move_list_t expected;
-    struct move_t move;
     ENTER_UNITTEST();
 
-    #if 0
     /* black on 14 */
     state_init(&state);
     move_list_init(&movelist);
@@ -1050,42 +1049,6 @@ void unittest_generate_moves() {
     move_list_append_move(expected, SQR(4), SQR(8));
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
-    #endif
-
-    /* START HERE */
-    state_init(&state);
-    setup_start_position(state);
-    move_list_init(&movelist);
-    move_list_init(&expected);
-    move_init(&move);
-    move.src = SQR(11);
-    move.dst = SQR(15);
-    make_move(&state, &move);
-    ++state.moves;
-    move_init(&move);
-    move.src = SQR(23);
-    move.dst = SQR(20);
-    make_move(&state, &move);
-    ++state.moves;
-    move_init(&move);    
-    move.src = SQR(7);
-    move.dst = SQR(11);
-    make_move(&state, &move);
-    ++state.moves;
-    move_init(&move);
-    move.src = SQR(28);
-    move.dst = SQR(23);
-    make_move(&state, &move);
-    ++state.moves;
-    move_init(&move);
-    move.src = SQR(15);
-    move.dst = SQR(19);
-    make_move(&state, &move);
-    ++state.moves;
-    move_init(&move);
-    generate_captures(&state, &movelist);
-    print_move_list(movelist); printf("\n");
-    
     EXIT_UNITTEST();
 }
 
@@ -2303,7 +2266,7 @@ int ask_to_quit() {
 /* --- End   user input functions --- */
 
 int main(int argc, char **argv) {
-//    #define DO_UNITTEST
+#define DO_UNITTEST
 #if defined(PRINT_LEDGER)
     perft(8);
 #elif defined(DO_UNITTEST)
@@ -2322,7 +2285,6 @@ int main(int argc, char **argv) {
     setup_start_position(state);
     print_board(state);
 #else /* play game */
-
     struct state_t state;
     struct move_t move;
     int moves;
