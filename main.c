@@ -343,7 +343,9 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
     uint8_t square = path[len - 1];
 
     if (!TOP2ROWS(square)) {
-        if (!LEFT2COLS(square) && OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+        if (!LEFT2COLS(square) &&
+            OCCUPIED(white, UP_LEFT(square)) &&
+            !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, UP_LEFT(square));
@@ -357,7 +359,9 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
                 add_to_move_list(moves, path, len + 1);
             }
         }
-        if (!RIGHT2COLS(square) && OCCUPIED(white, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
+        if (!RIGHT2COLS(square) &&
+            OCCUPIED(white, UP_RIGHT(square)) &&
+            !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, UP_RIGHT(square));
@@ -374,7 +378,9 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
     }
 
     if (is_king && !BOTTOM2ROWS(square)) {
-        if (!LEFT2COLS(square) && OCCUPIED(white, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+        if (!LEFT2COLS(square) &&
+            OCCUPIED(white, DOWN_LEFT(square)) &&
+            !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, DOWN_LEFT(square));
@@ -387,7 +393,9 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
                 add_to_move_list(moves, path, len + 1);
             }
         }
-        if (!RIGHT2COLS(square) && OCCUPIED(white, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
+        if (!RIGHT2COLS(square) &&
+            OCCUPIED(white, DOWN_RIGHT(square)) &&
+            !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, DOWN_RIGHT(square));
@@ -411,7 +419,9 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
     uint8_t square = path[len - 1];
 
     if (!BOTTOM2ROWS(square)) {
-        if (!LEFT2COLS(square) && OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+        if (!LEFT2COLS(square) &&
+            OCCUPIED(black, DOWN_LEFT(square)) &&
+            !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_LEFT(square));
@@ -424,7 +434,9 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
                 add_to_move_list(moves, path, len + 1);
             }
         }
-        if (!RIGHT2COLS(square) && OCCUPIED(black, DOWN_RIGHT(square)) && !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
+        if (!RIGHT2COLS(square) &&
+            OCCUPIED(black, DOWN_RIGHT(square)) &&
+            !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_RIGHT(square));
@@ -440,7 +452,9 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
     }
 
     if (is_king && !TOP2ROWS(square)) {
-        if (!LEFT2COLS(square) && OCCUPIED(black, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+        if (!LEFT2COLS(square) &&
+            OCCUPIED(black, UP_LEFT(square)) &&
+            !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_LEFT(square));
@@ -453,7 +467,9 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
                 add_to_move_list(moves, path, len + 1);
             }
         }
-        if (!RIGHT2COLS(square) && OCCUPIED(black, UP_RIGHT(square)) && !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
+        if (!RIGHT2COLS(square) &&
+            OCCUPIED(black, UP_RIGHT(square)) &&
+            !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_RIGHT(square));
@@ -480,7 +496,9 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
                 if (!TOP2ROWS(square)) {                
-                    if (!LEFT2COLS(square) && OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
+                    if (!LEFT2COLS(square) &&
+                        OCCUPIED(WHITE(*state), UP_LEFT(square)) &&
+                        !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_LEFT(square);
                         if (!multicapture_black(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) | MASK(JUMP_UP_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
@@ -489,7 +507,9 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                             move_list_append_capture(*moves, move);
                         }
                     }
-                    if (!RIGHT2COLS(square) && OCCUPIED(WHITE(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
+                    if (!RIGHT2COLS(square) &&
+                        OCCUPIED(WHITE(*state), UP_RIGHT(square)) &&
+                        !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_RIGHT(square);
                         if (!multicapture_black(WHITE(*state) & ~MASK(UP_RIGHT(square)), (BLACK(*state) | MASK(JUMP_UP_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
@@ -502,7 +522,9 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
 
                 if (BLACK_KING(*state, square)) {
                     if (!BOTTOM2ROWS(square)) {                        
-                        if (!LEFT2COLS(square) && OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                        if (!LEFT2COLS(square) &&
+                            OCCUPIED(WHITE(*state), DOWN_LEFT(square)) &&
+                            !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                             path[0] = square;
                             path[1] = JUMP_DOWN_LEFT(square);
                             if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_LEFT(square)), (BLACK(*state) | MASK(JUMP_DOWN_LEFT(square))), moves, &(path[0]), 2, TRUE)) {
@@ -511,7 +533,9 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                                 move_list_append_capture(*moves, move);
                             }
                         }
-                        if (!RIGHT2COLS(square) && OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
+                        if (!RIGHT2COLS(square) &&
+                            OCCUPIED(WHITE(*state), DOWN_RIGHT(square)) &&
+                            !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                             path[0] = square;
                             path[1] = JUMP_DOWN_RIGHT(square);
                             if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_RIGHT(square)), (BLACK(*state) | MASK(JUMP_DOWN_RIGHT(square))), moves, &(path[0]), 2, TRUE)) {
@@ -527,8 +551,10 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     } else {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
-                if (!BOTTOM2ROWS(square)) {
-                    if (!LEFT2COLS(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                if (likely(!BOTTOM2ROWS(square))) {
+                    if (!LEFT2COLS(square) &&
+                        OCCUPIED(BLACK(*state), DOWN_LEFT(square)) &&
+                        !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
@@ -537,7 +563,9 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                             move_list_append_capture(*moves, move);
                         }                    
                     }
-                    if (!RIGHT2COLS(square) && OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
+                    if (!RIGHT2COLS(square) &&
+                        OCCUPIED(BLACK(*state), DOWN_RIGHT(square)) &&
+                        !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_RIGHT(square);
                         if (multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))), BLACK(*state) & ~MASK(DOWN_RIGHT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square)) == 0) {
@@ -548,8 +576,10 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                     }
                 }
                 if (WHITE_KING(*state, square)) {
-                    if (!TOP2ROWS(square)) {
-                        if (!LEFT2COLS(square) && OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
+                    if (likely(!TOP2ROWS(square))) {
+                        if (!LEFT2COLS(square) &&
+                            OCCUPIED(BLACK(*state), UP_LEFT(square)) &&
+                            !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                             path[0] = square;
                             path[1] = JUMP_UP_LEFT(square);
                             if (!multicapture_white((WHITE(*state) | MASK(JUMP_UP_LEFT(square))), BLACK(*state) & ~MASK(UP_LEFT(square)), moves, &(path[0]), 2, TRUE)) {
@@ -558,7 +588,9 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                                 move_list_append_capture(*moves, move);
                             }
                         }
-                        if (!RIGHT2COLS(square) && OCCUPIED(BLACK(*state), UP_RIGHT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
+                        if (!RIGHT2COLS(square) &&
+                            OCCUPIED(BLACK(*state), UP_RIGHT(square)) &&
+                            !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                             path[0] = square;
                             path[1] = JUMP_UP_RIGHT(square);
                             if (!multicapture_white((WHITE(*state) | MASK(JUMP_UP_RIGHT(square))), BLACK(*state) & ~MASK(UP_RIGHT(square)), moves, &(path[0]), 2, TRUE)) {
