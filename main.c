@@ -10,6 +10,14 @@
 
 //#define PRINT_LEDGER
 
+#if defined(__GNUC__)
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
+#else
+#define likely(x) (x)
+#define unlikely(x) (x)
+#endif
+
 #define MAX_PATH 8
 #define MAX_MOVES 32
 #define COLUMNS 8
@@ -48,9 +56,12 @@
 #define RIGHT(square) ((MASK(square) & (MASK(7) | MASK(15) | MASK(23) | MASK(31))) != 0)
 #define BOTTOM(square) ((MASK(square) & (MASK(0) | MASK(1) | MASK(2) | MASK(3))) != 0)
 #define TOP2(square) ((MASK(square) & (MASK(24) | MASK(25) | MASK(26) | MASK(27))) != 0)
+#define TOP2ROWS(square) ((MASK(square) & (MASK(24) | MASK(25) | MASK(26) | MASK(27) | MASK(28) | MASK(29) | MASK(30) | MASK(31))) != 0)
 #define LEFT2(square) ((MASK(square) & (MASK(4) | MASK(12) | MASK(20) | MASK(28))) != 0)
+#define LEFT2COLS(square) ((MASK(square) & (MASK(4) | MASK(12) | MASK(20) | MASK(28) | MASK(0) | MASK(8) | MASK(16) | MASK(24))) != 0)
 #define RIGHT2(square) ((MASK(square) & (MASK(3) | MASK(11) | MASK(19) | MASK(27))) != 0)
 #define BOTTOM2(square) ((MASK(square) & (MASK(4) | MASK(5) | MASK(6) | MASK(7))) != 0)
+#define BOTTOM2ROWS(square) ((MASK(square) & (MASK(4) | MASK(5) | MASK(6) | MASK(7) | MASK(0) | MASK(1) | MASK(2) | MASK(3))) != 0)
 
 static const char * __unittest = 0;
 /* static int __unittest_number = 0; */
@@ -330,8 +341,8 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
     int ret = 0;
     uint8_t square = path[len - 1];
 
-    if (!TOP(square) && !TOP2(square)) {
-        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+    if (!TOP2ROWS(square)) {
+        if (!LEFT2COLS(square) && OCCUPIED(white, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, UP_LEFT(square));
@@ -361,8 +372,8 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
         }
     }
 
-    if (is_king && !BOTTOM(square) && !BOTTOM2(square)) {
-        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(white, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+    if (is_king && !BOTTOM2ROWS(square)) {
+        if (!LEFT2COLS(square) && OCCUPIED(white, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, DOWN_LEFT(square));
@@ -398,8 +409,8 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
     int ret = 0;
     uint8_t square = path[len - 1];
 
-    if (!BOTTOM(square) && !BOTTOM2(square)) {
-        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
+    if (!BOTTOM2ROWS(square)) {
+        if (!LEFT2COLS(square) && OCCUPIED(black, DOWN_LEFT(square)) && !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_LEFT(square));
@@ -427,8 +438,8 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
         }
     }
 
-    if (is_king && !TOP(square) && !TOP2(square)) {
-        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(black, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
+    if (is_king && !TOP2ROWS(square)) {
+        if (!LEFT2COLS(square) && OCCUPIED(black, UP_LEFT(square)) && !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_LEFT(square));
@@ -467,8 +478,8 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     if (black_move(*state)) {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(BLACK(*state), square)) {
-                if (!TOP(square) && !TOP2(square)) {                
-                    if (!LEFT(square) && !LEFT2(square) && OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
+                if (!TOP2ROWS(square)) {                
+                    if (!LEFT2COLS(square) && OCCUPIED(WHITE(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_LEFT(square);
                         if (!multicapture_black(WHITE(*state) & ~MASK(UP_LEFT(square)), (BLACK(*state) | MASK(JUMP_UP_LEFT(square))), moves, &(path[0]), 2, BLACK_KING(*state, square))) {
@@ -489,8 +500,8 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                 }
 
                 if (BLACK_KING(*state, square)) {
-                    if (!BOTTOM(square) && !BOTTOM2(square)) {                        
-                        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                    if (!BOTTOM2ROWS(square)) {                        
+                        if (!LEFT2COLS(square) && OCCUPIED(WHITE(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                             path[0] = square;
                             path[1] = JUMP_DOWN_LEFT(square);
                             if (!multicapture_black(WHITE(*state) & ~MASK(DOWN_LEFT(square)), (BLACK(*state) | MASK(JUMP_DOWN_LEFT(square))), moves, &(path[0]), 2, TRUE)) {
@@ -515,8 +526,8 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
     } else {
         for (square = 0; square < SQUARES; ++square) {
             if (OCCUPIED(WHITE(*state), square)) {
-                if (!BOTTOM(square) && !BOTTOM2(square)) {
-                    if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
+                if (!BOTTOM2ROWS(square)) {
+                    if (!LEFT2COLS(square) && OCCUPIED(BLACK(*state), DOWN_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
                         if (!multicapture_white((WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))), BLACK(*state) & ~MASK(DOWN_LEFT(square)), moves, &(path[0]), 2, WHITE_KING(*state, square))) {
@@ -536,8 +547,8 @@ int generate_captures(const struct state_t* state, struct move_list_t* moves) {
                     }
                 }
                 if (WHITE_KING(*state, square)) {
-                    if (!TOP(square) && !TOP2(square)) {
-                        if (!LEFT(square) && !LEFT2(square) && OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
+                    if (!TOP2ROWS(square)) {
+                        if (!LEFT2COLS(square) && OCCUPIED(BLACK(*state), UP_LEFT(square)) && !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                             path[0] = square;
                             path[1] = JUMP_UP_LEFT(square);
                             if (!multicapture_white((WHITE(*state) | MASK(JUMP_UP_LEFT(square))), BLACK(*state) & ~MASK(UP_LEFT(square)), moves, &(path[0]), 2, TRUE)) {
@@ -806,12 +817,12 @@ uint64_t __perft_helper(int depth, const struct state_t* in_state) {
     int nmoves;
     int64_t nodes = 0;
     #ifdef PRINT_LEDGER
-    struct move_t cgame[NMOVES]; /* TODO: remove printing entire game ledger */
+    struct move_t cgame[NMOVES];
     #endif
     
     if (depth == 0) return 1;
     #ifdef PRINT_LEDGER
-    memcpy(&cgame[0], game, sizeof(cgame[0]) * NMOVES); /* TODO: remove print entire game ledger */
+    memcpy(&cgame[0], game, sizeof(cgame[0]) * NMOVES);
     #endif
     move_list_init(&movelist);
     get_moves(in_state, &movelist);
@@ -2124,7 +2135,7 @@ void unittest_perft() {
         ,845931
         ,3963680
         ,18391564
-        /* ,85242128 */
+        ,85242128
         /* ,388623673 */
         /* ,1766623630 */
         /* ,7978439499 */
@@ -2152,7 +2163,6 @@ void unittest_perft() {
         gettimeofday(&start, 0);
         nodes = perft(depth);
         gettimeofday(&end, 0);
-        
         printf("perft(%d) = %lu in %lu ms.\n", depth, nodes, ((end.tv_sec * 1000000UL + end.tv_usec) - (start.tv_sec * 1000000UL + start.tv_usec)) / 1000UL);
         UNITTEST_ASSERT_MSG(nodes, expected[depth], "%lu");
     }

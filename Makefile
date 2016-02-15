@@ -1,7 +1,7 @@
 CC=gcc
-RELEASE=-O2
+RELEASE=-O3 -fomit-frame-pointer
 DEBUG=-g -O0
-CFLAGS=-Wall -Werror $(DEBUG)
+CFLAGS=-Wall -Werror $(RELEASE) #$(DEBUG)
 OBJS=main.o
 PROG=checkers
 
