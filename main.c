@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <regex.h>
@@ -2235,57 +2236,106 @@ void unittest_perft() {
 
 /* --- End Unit Tests --- */
 
+int parse_int(const char* line, int sz) {
+    int ret = 0;
+    int multiplier = 1;
+    const char* pos = line + sz - 1;
+    while (pos >= line) {
+        if (!isdigit(*pos)) break;
+        ret += (*pos - '0') * multiplier;
+        multiplier *= 10;
+        --pos;
+    }
+	return ret;
+}
+
 /* --- Begin user input functions --- */
-int valid_input(const char* line) {
+int valid_input(const char* line, struct move_t* move) {
     regex_t preg;
     const size_t nmatch = 11;
     regmatch_t pmatch[11];
     int i;
-    
-    if (regcomp(&preg, "([0-9]+)([ ]*-[ ]*([0-9]+))([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?([ ]*-[ ]*[0-9]+)?", REG_EXTENDED) != 0) {
+    /*
+     * NOTE: allows separator to be '-' or 'x' and for them to be mixed.
+     *       this is way easier to implement and doesn't really matter.
+     */
+    if (regcomp(&preg,
+                "([0-9]+)"               // match 1
+                "([ ]*[-x][ ]*[0-9]+)"   // match 2
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 3  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 4  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 5  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 6  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 7  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 8  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 9  (optional)
+                "([ ]*[-x][ ]*[0-9]+)?"  // match 10 (optional)
+                , REG_EXTENDED) != 0) {
         return -1;
     }
-    printf("regexec compiled successfully\n");
     if (regexec(&preg, line, nmatch, &pmatch[0], 0) != 0) {
         return -2;
     }
-
-    for (i = 0; i < nmatch; ++i) {
-        if (pmatch[i].rm_so == -1) break;
-        printf("%.*s\n", pmatch[i].rm_eo - pmatch[i].rm_so, &line[pmatch[i].rm_so]);
+    if (pmatch[1].rm_so == -1) {
+        return -3; // no match
     }
-    
+    move_init(move);    
+    move->src = SQR(parse_int(&line[pmatch[1].rm_so], pmatch[1].rm_eo - pmatch[1].rm_so));
+    for (i = 2; i < nmatch && pmatch[i].rm_so != -1; ++i) {
+        move->path[i - 2] = SQR(parse_int(&line[pmatch[i].rm_so], pmatch[i].rm_eo - pmatch[i].rm_so));
+    }
+    move->dst = move->path[i - 3];
+    move->path[i - 3] = 0;
+    move->pathlen = i - 3;
     return 0;
 }
-
 int read_move(FILE* input, struct move_t* move) {
     char* line = 0;
     size_t n = 0;
     ssize_t ret;
-    
-    if ((ret = getline(&line, &n, input)) < 1) {
-        return -1;
-    } else {
+    ret = getline(&line, &n, input);
+    if (ret >= 1) {
         if (line[ret - 1] == '\n') { // chomp(line)
             line[ret - 1] = 0;
         }
-        move_init(move);
-        printf("Input: \"%s\"\n", line);
-        if (valid_input(line) == 0) {
-            printf("line is valid\n");
-        } else {
-            printf("line is invalid\n");
-        }
-
+        ret = valid_input(line, move);
         free(line);
-        return 0;
     }
+    return ret;
+}
+int valid_move(struct state_t* state, struct move_t* move) {
+    struct move_list_t movelist;
+    move_list_init(&movelist);
+    get_moves(state, &movelist);
+    /*DEBUG*/
+    printf("Allowed moves: "); print_move_list(movelist); printf("\n");
+    /*GUBED*/
+    int nmoves = move_list_num_moves(movelist);
+    int i;
+    boolean ok = FALSE;
+    for (i = 0; i < nmoves && ok == FALSE; ++i) {
+        ok = move_compare(move, &movelist.moves[i]) == 0;
+    }
+    return ok ^ 1; /* return 0 if ok */
+}
+int ask_to_quit() {
+    char* line = 0;
+    size_t n = 0;
+    ssize_t ret;
+    printf("Would you like to quit? ");
+    ret = getline(&line, &n, stdin);
+    if (ret > 0) {
+        if (line[0] == 'y' || line[0] == 'Y') {
+            ret = 0;
+        }
+        free(line);
+    }
+    return ret;
 }
 /* --- End   user input functions --- */
 
 int main(int argc, char **argv) {
 //    #define DO_UNITTEST
-    
 #if defined(PRINT_LEDGER)
     perft(8);
 #elif defined(DO_UNITTEST)
@@ -2303,22 +2353,35 @@ int main(int argc, char **argv) {
     move_list_init(&moves);    
     setup_start_position(state);
     print_board(state);
-#elif defined(PERFT)
-    int depth;
-    for (depth = 0; depth < 12; ++depth) {
-        printf("moves at depth %d = %lu\n", depth, perft(depth));
-    }
 #else /* play game */
 
     struct state_t state;
     struct move_t move;
+    int moves;
     state_init(&state);
     setup_start_position(state);
-    print_board(state);
 
-    printf("Enter move: ");
-    read_move(stdin, &move);
-    
+    for (moves = 0; moves < 5; ++moves) {
+        while (1) {
+            print_board(state);
+            printf("Enter move #%d: ", moves + 1);
+            read_move(stdin, &move);
+            if (valid_move(&state, &move) == 0) {
+                break;
+            } else {
+                printf("\n\nInvalid move!!\n");
+                if (ask_to_quit(stdin) == 0) {
+                    goto quit;
+                }
+            }
+        }
+
+        printf("Move: "); __print_move(stdout, &move); printf("\n");
+        make_move(&state, &move);
+        ++state.moves;
+    }
+
+quit:
     printf("Bye.\n");    
 #endif
     return 0;
