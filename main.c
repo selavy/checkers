@@ -493,7 +493,6 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
     uint8_t path[10];
     int32_t white;
     int32_t black;
-    
 
     for (square = 0; square < SQUARES; ++square) {
         if (OCCUPIED(BLACK(*state), square)) {
@@ -504,7 +503,7 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
                     path[0] = square;
                     path[1] = JUMP_UP_LEFT(square);
                     white = WHITE(*state) & ~MASK(UP_LEFT(square));
-                    black = BLACK(*state) | MASK(JUMP_UP_LEFT(square));
+                    black = (BLACK(*state) | MASK(JUMP_UP_LEFT(square))) & ~MASK(square);
                     if (!multicapture_black(white, black, moves, &path[0], 2, BLACK_KING(*state, square))) {
                         move_init(&move);
                         move.src = square;
@@ -518,7 +517,7 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
                     path[0] = square;
                     path[1] = JUMP_UP_RIGHT(square);
                     white = WHITE(*state) & ~MASK(UP_RIGHT(square));
-                    black = BLACK(*state) | MASK(JUMP_UP_LEFT(square));
+                    black = (BLACK(*state) | MASK(JUMP_UP_LEFT(square))) & ~MASK(square);
                     if (!multicapture_black(white, black, moves, &path[0], 2, BLACK_KING(*state, square))) {
                         move_init(&move);                        
                         move.src = square;
@@ -536,7 +535,7 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
                         path[0] = square;
                         path[1] = JUMP_DOWN_LEFT(square);
                         white = WHITE(*state) & ~MASK(DOWN_LEFT(square));
-                        black = BLACK(*state) | MASK(JUMP_DOWN_LEFT(square));
+                        black = (BLACK(*state) | MASK(JUMP_DOWN_LEFT(square))) & ~MASK(square);
                         if (!multicapture_black(white, black, moves, &path[0], 2, TRUE)) {
                             move_init(&move);                            
                             move.src = square;
@@ -550,7 +549,7 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
                         path[0] = square;
                         path[1] = JUMP_DOWN_RIGHT(square);
                         white = WHITE(*state) & ~MASK(DOWN_RIGHT(square));
-                        black = BLACK(*state) | MASK(JUMP_DOWN_RIGHT(square));
+                        black = (BLACK(*state) | MASK(JUMP_DOWN_RIGHT(square))) & ~MASK(square);
                         if (!multicapture_black(white, black, moves, &path[0], 2, TRUE)) {
                             move_init(&move);                            
                             move.src = square;
@@ -579,7 +578,7 @@ int generate_captures_white(const struct state_t* state, struct move_list_t* mov
                     !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
                     path[0] = square;
                     path[1] = JUMP_DOWN_LEFT(square);
-                    white = WHITE(*state) | MASK(JUMP_DOWN_LEFT(square));
+                    white = (WHITE(*state) | MASK(JUMP_DOWN_LEFT(square))) & ~MASK(square);
                     black = BLACK(*state) & ~MASK(DOWN_LEFT(square));
                     if (!multicapture_white(white, black, moves, &path[0], 2, WHITE_KING(*state, square))) {
                         move_init(&move);                        
@@ -593,7 +592,7 @@ int generate_captures_white(const struct state_t* state, struct move_list_t* mov
                     !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_RIGHT(square))) {
                     path[0] = square;
                     path[1] = JUMP_DOWN_RIGHT(square);
-                    white = WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square));
+                    white = (WHITE(*state) | MASK(JUMP_DOWN_RIGHT(square))) & ~MASK(square);
                     black = BLACK(*state) & ~MASK(DOWN_RIGHT(square));
                     if (!multicapture_white(white, black, moves, &path[0], 2, WHITE_KING(*state, square))) {
                         move_init(&move);                                                
@@ -610,7 +609,7 @@ int generate_captures_white(const struct state_t* state, struct move_list_t* mov
                         !OCCUPIED(FULLBOARD(*state), JUMP_UP_LEFT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_LEFT(square);
-                        white = WHITE(*state) | MASK(JUMP_UP_LEFT(square));
+                        white = (WHITE(*state) | MASK(JUMP_UP_LEFT(square))) & ~MASK(square);
                         black = BLACK(*state) & ~MASK(UP_LEFT(square));
                         if (!multicapture_white(white, black, moves, &path[0], 2, TRUE)) {
                             move_init(&move);                                                    
@@ -624,7 +623,7 @@ int generate_captures_white(const struct state_t* state, struct move_list_t* mov
                         !OCCUPIED(FULLBOARD(*state), JUMP_UP_RIGHT(square))) {
                         path[0] = square;
                         path[1] = JUMP_UP_RIGHT(square);
-                        white = WHITE(*state) | MASK(JUMP_UP_RIGHT(square));
+                        white = (WHITE(*state) | MASK(JUMP_UP_RIGHT(square))) & ~MASK(square);
                         black = BLACK(*state) & ~MASK(UP_RIGHT(square));
                         if (!multicapture_white(white, black, moves, &path[0], 2, TRUE)) {
                             move_init(&move);                            
