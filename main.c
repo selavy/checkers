@@ -129,6 +129,7 @@ struct move_list_t {
 
 /* -- end types -- */
 boolean is_noncapture(const struct move_t* move) {
+    /* TODO: switch to bitmaps */
     return (move->pathlen == 0)
         && (move->dst == UP_LEFT(move->src)
             || move->dst == UP_RIGHT(move->src)
@@ -1771,6 +1772,43 @@ void unittest_generate_multicaptures() {
     generate_captures(&state, &movelist);        
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
     /* Move list: 25-18-11-20 */
+
+    /*
+    ---------------------------------
+    |   |29 |   |30 |   |31 |   |32 |
+    ---------------------------------
+    |25 |   |26 |   |27 |   |28 |   |
+    ---------------------------------
+    |   |21 |   |22 |   |23 |   |24 |
+    ---------------------------------
+    |17 |   | w |   | w |   |20 |   |
+    ---------------------------------
+    |   |13 |   |14 |   |15 |   |16 |
+    ---------------------------------
+    | 9 |   | w |   | w |   |12 |   |
+    ---------------------------------
+    |   | 5 |   | B |   | 7 |   | 8 |
+    ---------------------------------
+    | 1 |   | 2 |   | 3 |   | 4 |   |
+    ---------------------------------
+    */
+    state_init(&state);
+    move_list_init(&movelist);
+    move_list_init(&expected);
+    state.black = SQUARE(6);
+    state.white = SQUARE(10) | SQUARE(11) | SQUARE(12) | SQUARE(18) | SQUARE(19);
+    state.black_kings = 0;
+    state.white_kings = 0;
+    move_init(&move);
+    move.src = SQR(6);
+    move.dst = SQR(22);
+    move.path[0] = SQR(13);
+    move.pathlen = 1;
+    move_list_append_capture(expected, move);
+    move.path[0] = SQR(15);
+    move_list_append_capture(expected, move);
+    generate_captures(&state, &movelist);
+    UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
     /*
     ---------------------------------
