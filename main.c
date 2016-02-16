@@ -350,7 +350,6 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, UP_LEFT(square));
-            PLACE(nblack, UP_LEFT(square));
             CLEAR(nblack, square);
             PLACE(nblack, JUMP_UP_LEFT(square));
             ret = 1;
@@ -366,7 +365,6 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, UP_RIGHT(square));
-            PLACE(nblack, UP_RIGHT(square));
             CLEAR(nblack, square);
             PLACE(nblack, JUMP_UP_RIGHT(square));
             ret = 1;
@@ -385,7 +383,6 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, DOWN_LEFT(square));
-            PLACE(nblack, DOWN_LEFT(square));
             CLEAR(nblack, square);
             PLACE(nblack, JUMP_DOWN_LEFT(square));
             ret = 1;
@@ -400,7 +397,6 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nwhite, DOWN_RIGHT(square));
-            PLACE(nblack, DOWN_RIGHT(square));
             CLEAR(nblack, square);
             PLACE(nblack, JUMP_DOWN_RIGHT(square));
             ret = 1;
@@ -426,7 +422,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_LEFT(square));
-            PLACE(nwhite, DOWN_LEFT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_DOWN_LEFT(square));
             ret = 1;
@@ -441,7 +436,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nblack, DOWN_RIGHT(square));
-            PLACE(nwhite, DOWN_RIGHT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_DOWN_RIGHT(square));
             ret = 1;
@@ -459,7 +453,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_LEFT(square));
-            PLACE(nwhite, UP_LEFT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_UP_LEFT(square));
             ret = 1;
@@ -474,7 +467,6 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
             nwhite = white;
             nblack = black;
             CLEAR(nblack, UP_RIGHT(square));
-            PLACE(nwhite, UP_RIGHT(square));
             CLEAR(nwhite, square);
             PLACE(nwhite, JUMP_UP_RIGHT(square));
             ret = 1;
@@ -1882,13 +1874,13 @@ void unittest_generate_multicaptures() {
     move.pathlen = 3;
     move_list_append_capture(expected, move);
     move.path[0] = SQR(15);
+    move.path[1] = SQR(22);
     move.path[2] = SQR(13);
+    move.pathlen = 3;
     move_list_append_capture(expected, move);
     generate_captures(&state, &movelist);
     /* TODO: fix this test */
-    #if 0
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
-    #endif
 
     /*
     ---------------------------------
@@ -2284,12 +2276,12 @@ void unittest_perft() {
         ,36768
         ,179740
         ,845931
-        /* ,3963680 */
-        /* ,18391564 */
-        /* ,85242128 */
-        /* ,388623673 */
-        /* ,1766623630 */
-        /* ,7978439499 */
+        ,3963680
+        ,18391564
+        ,85242128
+        ,388623673
+        ,1766623630
+        ,7978439499
         /* ,36263167175 */
         /* ,165629569428 */
         /* ,758818810990 */
