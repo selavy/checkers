@@ -337,7 +337,24 @@ void add_to_move_list(struct move_list_t* moves, const uint8_t* path, int len) {
     memcpy(&movep->path[0], &path[1], sizeof(path[1]) * len);
     movep->pathlen = len - 2;
 }
-int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, uint8_t* path, int len, boolean is_king) {
+void print_binary(const uint32_t mask) {
+    int i;
+    for (i = 31; i >= 0; --i) {
+        /* printf("%d", mask & (1 << i) ? 1 : 0); */
+        if (mask & (1 << i)) {
+            printf("%d ", i + 1);
+        }
+    }
+}
+void print_path(const uint8_t* path, int len) {
+    int i;
+    printf("Path: ");
+    for (i = 0; i < len; ++i) {
+        printf("%d ", path[i] + 1);
+    }
+    printf("\n");
+}
+int multicapture_black(const int32_t white, const int32_t black, struct move_list_t* moves, uint8_t* path, int len, boolean is_king) {
     int32_t nwhite;
     int32_t nblack;
     int ret = 0;
@@ -347,14 +364,10 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!LEFT2COLS(square) &&
             OCCUPIED(white, UP_LEFT(square)) &&
             !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nwhite, UP_LEFT(square));
-            CLEAR(nblack, square);
-            PLACE(nblack, JUMP_UP_LEFT(square));
+            nwhite = white & ~MASK(UP_LEFT(square));
+            nblack = (black | MASK(JUMP_UP_LEFT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_UP_LEFT(square);
-
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len + 1);
             }
@@ -362,14 +375,10 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!RIGHT2COLS(square) &&
             OCCUPIED(white, UP_RIGHT(square)) &&
             !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nwhite, UP_RIGHT(square));
-            CLEAR(nblack, square);
-            PLACE(nblack, JUMP_UP_RIGHT(square));
+            nwhite = white & ~MASK(UP_RIGHT(square));
+            nblack = (black | MASK(JUMP_UP_RIGHT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_UP_RIGHT(square);
-        
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
                 add_to_move_list(moves, path, len + 1);
             }
@@ -380,11 +389,8 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!LEFT2COLS(square) &&
             OCCUPIED(white, DOWN_LEFT(square)) &&
             !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nwhite, DOWN_LEFT(square));
-            CLEAR(nblack, square);
-            PLACE(nblack, JUMP_DOWN_LEFT(square));
+            nwhite = white & ~MASK(DOWN_LEFT(square));
+            nblack = (black | MASK(JUMP_DOWN_LEFT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
@@ -394,11 +400,8 @@ int multicapture_black(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!RIGHT2COLS(square) &&
             OCCUPIED(white, DOWN_RIGHT(square)) &&
             !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nwhite, DOWN_RIGHT(square));
-            CLEAR(nblack, square);
-            PLACE(nblack, JUMP_DOWN_RIGHT(square));
+            nwhite = white & ~MASK(DOWN_RIGHT(square));
+            nblack = (black | MASK(JUMP_DOWN_RIGHT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
             if (!multicapture_black(nwhite, nblack, moves, path, len + 1, is_king)) {
@@ -419,11 +422,8 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!LEFT2COLS(square) &&
             OCCUPIED(black, DOWN_LEFT(square)) &&
             !OCCUPIED(white | black, JUMP_DOWN_LEFT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nblack, DOWN_LEFT(square));
-            CLEAR(nwhite, square);
-            PLACE(nwhite, JUMP_DOWN_LEFT(square));
+            nblack = black & ~MASK(DOWN_LEFT(square));
+            nwhite = (white | MASK(JUMP_DOWN_LEFT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_DOWN_LEFT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
@@ -433,11 +433,8 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!RIGHT2COLS(square) &&
             OCCUPIED(black, DOWN_RIGHT(square)) &&
             !OCCUPIED(white | black, JUMP_DOWN_RIGHT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nblack, DOWN_RIGHT(square));
-            CLEAR(nwhite, square);
-            PLACE(nwhite, JUMP_DOWN_RIGHT(square));
+            nblack = black & ~MASK(DOWN_RIGHT(square));
+            nwhite = (white | MASK(JUMP_DOWN_RIGHT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_DOWN_RIGHT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
@@ -450,11 +447,8 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!LEFT2COLS(square) &&
             OCCUPIED(black, UP_LEFT(square)) &&
             !OCCUPIED(white | black, JUMP_UP_LEFT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nblack, UP_LEFT(square));
-            CLEAR(nwhite, square);
-            PLACE(nwhite, JUMP_UP_LEFT(square));
+            nblack = black & ~MASK(UP_LEFT(square));
+            nwhite = (white | MASK(JUMP_UP_LEFT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_UP_LEFT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
@@ -464,11 +458,8 @@ int multicapture_white(int32_t white, int32_t black, struct move_list_t* moves, 
         if (!RIGHT2COLS(square) &&
             OCCUPIED(black, UP_RIGHT(square)) &&
             !OCCUPIED(white | black, JUMP_UP_RIGHT(square))) {
-            nwhite = white;
-            nblack = black;
-            CLEAR(nblack, UP_RIGHT(square));
-            CLEAR(nwhite, square);
-            PLACE(nwhite, JUMP_UP_RIGHT(square));
+            nblack = black & ~MASK(UP_RIGHT(square));
+            nwhite = (white | MASK(JUMP_UP_RIGHT(square))) & ~MASK(square);
             ret = 1;
             path[len] = JUMP_UP_RIGHT(square);
             if (!multicapture_white(nwhite, nblack, moves, path, len + 1, is_king)) {
@@ -509,7 +500,7 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
                     path[0] = square;
                     path[1] = JUMP_UP_RIGHT(square);
                     white = WHITE(*state) & ~MASK(UP_RIGHT(square));
-                    black = (BLACK(*state) | MASK(JUMP_UP_LEFT(square))) & ~MASK(square);
+                    black = (BLACK(*state) | MASK(JUMP_UP_RIGHT(square))) & ~MASK(square);
                     if (!multicapture_black(white, black, moves, &path[0], 2, BLACK_KING(*state, square))) {
                         move_init(&move);                        
                         move.src = square;
@@ -520,7 +511,7 @@ int generate_captures_black(const struct state_t* state, struct move_list_t* mov
             }
 
             if (BLACK_KING(*state, square)) {
-                if (!BOTTOM2ROWS(square)) {                        
+                if (!BOTTOM2ROWS(square)) {
                     if (!LEFT2COLS(square) &&
                         OCCUPIED(WHITE(*state), DOWN_LEFT(square)) &&
                         !OCCUPIED(FULLBOARD(*state), JUMP_DOWN_LEFT(square))) {
@@ -1413,7 +1404,7 @@ void unittest_generate_multicaptures() {
     struct move_list_t expected;
     struct move_t move;
     ENTER_UNITTEST();
-
+    
     /*
     ---------------------------------
     |   |29 |   |30 |   |31 |   |32 |
@@ -1839,7 +1830,7 @@ void unittest_generate_multicaptures() {
     generate_captures(&state, &movelist);
     UNITTEST_ASSERT_MOVELIST(movelist, expected);
 
-        /*
+    /*
     ---------------------------------
     |   |29 |   |30 |   |31 |   |32 |
     ---------------------------------
@@ -2282,7 +2273,7 @@ void unittest_perft() {
         ,388623673
         ,1766623630
         ,7978439499
-        /* ,36263167175 */
+        ,36263167175
         /* ,165629569428 */
         /* ,758818810990 */
         /* ,3493881706141 */
@@ -2385,9 +2376,6 @@ int valid_move(struct state_t* state, struct move_t* move) {
     struct move_list_t movelist;
     move_list_init(&movelist);
     get_moves(state, &movelist);
-    /*DEBUG*/
-    printf("Allowed moves: "); print_move_list(movelist); printf("\n");
-    /*GUBED*/
     int nmoves = move_list_num_moves(movelist);
     int i;
     boolean ok = FALSE;
@@ -2424,7 +2412,7 @@ int main(int argc, char **argv) {
     unittest_generate_captures();
     unittest_generate_multicaptures();
     unittest_make_move();
-    unittest_perft();    
+    unittest_perft();
 #elif defined(SHOW_STARTING_POSITION)
     struct state_t state;
     struct move_list_t moves;
